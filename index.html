@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Prompt Minifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1100px;
+            margin: 20px auto;
+            padding: 10px;
+            background: #121212;
+            color: #e0e0e0;
+            transition: background 0.3s, color 0.3s;
+            position: relative;
+        }
+
+        .section {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #cccccc;
+        }
+
+        textarea {
+            width: 100%;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            padding: 12px;
+            border: 1px solid #444444;
+            border-radius: 6px;
+            box-sizing: border-box;
+            resize: vertical;
+            background: #242424;
+            color: #e0e0e0;
+        }
+
+        #prefix {
+            height: 100px;
+        }
+
+        #content {
+            height: 300px;
+        }
+
+        #output {
+            height: 220px;
+            background: #2a2a2a;
+            cursor: text;
+        }
+
+        textarea::placeholder {
+            color: #777777;
+            opacity: 1;
+        }
+
+        .prefix-controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .prefix-controls input[type="text"],
+        .prefix-controls select {
+            padding: 8px;
+            background: #333333;
+            color: #e0e0e0;
+            border: 1px solid #444444;
+            border-radius: 4px;
+            min-width: 200px;
+        }
+
+        .options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .limit-control {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        #char-limit {
+            width: 130px;
+            padding: 8px;
+            background: #333333;
+            color: #e0e0e0;
+            border: 1px solid #444444;
+            border-radius: 4px;
+        }
+
+        #char-count {
+            color: #aaaaaa;
+            font-size: 14px;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            background: #0d6efd;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover {
+            background: #0b5ed7;
+        }
+
+        #toast {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #28a745;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 1000;
+            pointer-events: none;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            min-width: 200px;
+            text-align: center;
+        }
+
+        #toast.error {
+            background: #dc3545;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="toast"></div>
+    <div class="section">
+        <label for="prefix">1. System Prompt / Prefix (natural language – extra spaces/newlines collapsed)</label>
+        <textarea id="prefix" placeholder="You are a helpful expert. Always respond with valid code..."></textarea>
+        <div class="prefix-controls">
+            <input type="text" id="prefix-name" placeholder="Preset name (e.g. Java Expert)">
+            <button id="save-prefix">Save Preset</button>
+            <select id="prefix-presets">
+                <option value="">-- Load Preset --</option>
+            </select>
+            <button id="delete-prefix">Delete Preset</button>
+        </div>
+    </div>
+    <div class="section">
+        <label for="content">2. Content (code, instructions, JSON – intelligently minified)</label>
+        <textarea id="content"
+            placeholder="Paste code, additional instructions, examples, JSON, etc. Unnecessary whitespace removed, required spaces between identifiers preserved, strings kept exactly."></textarea>
+    </div>
+    <div class="options">
+        <div class="limit-control">
+            <label>
+                <input type="checkbox" id="limit-toggle" checked>
+                Enable character limit
+            </label>
+            <input type="number" id="char-limit" value="390000" min="1000" step="1000">
+        </div>
+        <div id="char-count">Characters: 0</div>
+    </div>
+    <div class="section">
+        <label for="output">3. Minified Output (ready for AI prompt)</label>
+        <textarea id="output" readonly placeholder="Minified result will appear here automatically..."></textarea>
+    </div>
+    <div class="buttons">
+        <button id="copy">Copy Output to Clipboard</button>
+    </div>
+    <script>
+        // Minifiers
+        function minifyNatural(text) {
+            if (!text.trim()) return '';
+            return text.replace(/\s+/g, ' ').trim();
+        }
+        function minifyCode(text) {
+            if (!text.trim()) return '';
+            const output = [];
+            let i = 0;
+            let pendingSpace = false;
+            while (i < text.length) {
+                const char = text[i];
+                if (char === '"') {
+                    if (pendingSpace) pendingSpace = false;
+                    output.push('"');
+                    i++;
+                    while (i < text.length) {
+                        const c = text[i];
+                        if (c === '\\') {
+                            output.push('\\');
+                            i++;
+                            if (i < text.length) {
+                                output.push(text[i]);
+                                i++;
+                            }
+                        } else if (c === '"') {
+                            output.push('"');
+                            i++;
+                            pendingSpace = true;
+                            break;
+                        } else {
+                            output.push(c);
+                            i++;
+                        }
+                    }
+                    continue;
+                }
+                if (/\s/.test(char)) {
+                    pendingSpace = true;
+                    i++;
+                } else {
+                    if (pendingSpace) {
+                        const lastChar = output.length > 0 ? output[output.length - 1] : null;
+                        if (lastChar && /\w/.test(lastChar) && /\w/.test(char)) {
+                            output.push(' ');
+                        }
+                        pendingSpace = false;
+                    }
+                    output.push(char);
+                    i++;
+                }
+            }
+            return output.join('').trim();
+        }
+        // Update output
+        function updateOutput() {
+            const prefix = document.getElementById('prefix').value;
+            const content = document.getElementById('content').value;
+            const minPrefix = minifyNatural(prefix);
+            const minContent = minifyCode(content);
+            const parts = [];
+            if (minPrefix) parts.push(minPrefix);
+            if (minContent) parts.push(minContent);
+            let combined = parts.join(' ');
+            let finalText = combined;
+            let truncated = false;
+            const limitToggle = document.getElementById('limit-toggle');
+            if (limitToggle.checked) {
+                const limit = parseInt(document.getElementById('char-limit').value) || 0;
+                if (limit > 0 && combined.length > limit) {
+                    finalText = combined.substring(0, limit);
+                    truncated = true;
+                }
+            }
+            document.getElementById('output').value = finalText;
+            document.getElementById('char-count').textContent = `Characters: ${finalText.length}${truncated ? ' (truncated)' : ''}`;
+        }
+        // Live updates
+        document.getElementById('prefix').addEventListener('input', () => {
+            updateOutput();
+            localStorage.setItem('lastPrefix', document.getElementById('prefix').value);
+        });
+        document.getElementById('content').addEventListener('input', updateOutput);
+        document.getElementById('limit-toggle').addEventListener('change', () => {
+            const checked = document.getElementById('limit-toggle').checked;
+            document.getElementById('char-limit').disabled = !checked;
+            updateOutput();
+        });
+        document.getElementById('char-limit').addEventListener('input', updateOutput);
+        // Preset management
+        let presets = JSON.parse(localStorage.getItem('prefixPresets') || '{}');
+        function refreshPresetSelect() {
+            const select = document.getElementById('prefix-presets');
+            select.innerHTML = '<option value="">-- Load Preset --</option>';
+            Object.keys(presets).sort().forEach(name => {
+                const opt = document.createElement('option');
+                opt.value = name;
+                opt.textContent = name;
+                select.appendChild(opt);
+            });
+        }
+        document.getElementById('save-prefix').addEventListener('click', () => {
+            const name = document.getElementById('prefix-name').value.trim();
+            if (!name) {
+                showToast('Enter a preset name', true);
+                return;
+            }
+            const text = document.getElementById('prefix').value;
+            if (presets[name] && !confirm(`Overwrite existing preset "${name}"?`)) return;
+            presets[name] = text;
+            localStorage.setItem('prefixPresets', JSON.stringify(presets));
+            document.getElementById('prefix-name').value = '';
+            refreshPresetSelect();
+            showToast(`Preset "${name}" saved`);
+        });
+        document.getElementById('prefix-presets').addEventListener('change', (e) => {
+            const name = e.target.value;
+            if (name && presets[name] !== undefined) {
+                const presetText = presets[name] || '';
+                document.getElementById('prefix').value = presetText;
+                document.getElementById('prefix-name').value = name;
+                localStorage.setItem('lastPrefix', presetText);
+                updateOutput();
+            } else {
+                document.getElementById('prefix-name').value = '';
+            }
+        });
+        document.getElementById('delete-prefix').addEventListener('click', () => {
+            const select = document.getElementById('prefix-presets');
+            const name = select.value;
+            if (!name) {
+                showToast('Select a preset to delete', true);
+                return;
+            }
+            if (confirm(`Delete preset "${name}"?`)) {
+                delete presets[name];
+                localStorage.setItem('prefixPresets', JSON.stringify(presets));
+                refreshPresetSelect();
+                select.value = '';
+                document.getElementById('prefix-name').value = '';
+                showToast(`Preset "${name}" deleted`);
+            }
+        });
+        // Load last used prefix on start
+        const lastPrefix = localStorage.getItem('lastPrefix');
+        if (lastPrefix !== null) {
+            document.getElementById('prefix').value = lastPrefix;
+        }
+        // Initial setup
+        refreshPresetSelect();
+        updateOutput();
+        // Toast
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.toggle('error', isError);
+            toast.style.opacity = 1;
+            setTimeout(() => {
+                toast.style.opacity = 0;
+            }, 2000);
+        }
+        // Copy
+        document.getElementById('copy').addEventListener('click', async () => {
+            const output = document.getElementById('output');
+            output.select();
+            try {
+                await navigator.clipboard.writeText(output.value);
+                showToast('Copied!');
+            } catch (err) {
+                showToast('Copy failed – select & copy manually', true);
+            }
+        });
+    </script>
+</body>
+
+</html>
