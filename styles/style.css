@@ -1,0 +1,836 @@
+/* ============================================================
+   AI Prompt Minifier — style.css
+   Pure CSS, no frameworks.
+   Theme palettes are CSS custom properties: `:root` is the dark
+   default (the original index.html colour language); the other
+   palettes are activated with a class on <html> (see scripts/ui/theme.js).
+   ============================================================ */
+
+/* ---------------- Theme palettes (design tokens) ---------------- */
+
+/* Dark — default, exact colours of the original single-file app */
+:root {
+    --bg: #121212;
+    --pane: #181818;
+    --panel: #242424;
+    --panel-2: #2a2a2a;
+    --title-bg: #1e1e1e;
+    --border: #444444;
+    --border-soft: #333333;
+    --text: #e0e0e0;
+    --text-soft: #cccccc;
+    --muted: #aaaaaa;
+    --faint: #777777;
+    --input-bg: #333333;
+    --placeholder: #777777;
+    --accent: #0d6efd;
+    --accent-hover: #0b5ed7;
+    --success: #28a745;
+    --danger: #dc3545;
+    --on-accent: #ffffff;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    --focus-ring: var(--accent);
+}
+
+/* Light — cool neutral */
+:root.light {
+    --bg: #eef0f3;
+    --pane: #f6f7f9;
+    --panel: #ffffff;
+    --panel-2: #f1f3f5;
+    --title-bg: #ffffff;
+    --border: #cfd4dc;
+    --border-soft: #dfe3e8;
+    --text: #1f2328;
+    --text-soft: #3c424a;
+    --muted: #5f6771;
+    --faint: #8b939e;
+    --input-bg: #ffffff;
+    --placeholder: #8b939e;
+    --accent: #0d6efd;
+    --accent-hover: #0b5ed7;
+    --success: #1f7a38;
+    --danger: #c03444;
+    --shadow: 0 4px 12px rgba(31, 35, 40, 0.15);
+    --focus-ring: var(--accent);
+}
+
+/* Midnight — deep blue dark */
+:root.midnight {
+    --bg: #0b1220;
+    --pane: #101a2e;
+    --panel: #16233c;
+    --panel-2: #1b2a47;
+    --title-bg: #13203a;
+    --border: #2e3f5f;
+    --border-soft: #24344f;
+    --text: #dbe4f3;
+    --text-soft: #b9c6de;
+    --muted: #8fa2c0;
+    --faint: #64789a;
+    --input-bg: #0f1a30;
+    --placeholder: #64789a;
+    --accent: #4c8dff;
+    --accent-hover: #3272e0;
+    --success: #2eb872;
+    --danger: #ef5a6a;
+    --shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+    --focus-ring: var(--accent);
+}
+
+/* Paper — warm sepia light */
+:root.paper {
+    --bg: #efe9dd;
+    --pane: #f6f1e7;
+    --panel: #fffdf8;
+    --panel-2: #f3ecdf;
+    --title-bg: #fffdf8;
+    --border: #cfc4ad;
+    --border-soft: #ded5c3;
+    --text: #35302a;
+    --text-soft: #4f473d;
+    --muted: #6f6558;
+    --faint: #948a7a;
+    --input-bg: #fffdf8;
+    --placeholder: #948a7a;
+    --accent: #b45309;
+    --accent-hover: #92400e;
+    --success: #2f7d4f;
+    --danger: #c03444;
+    --shadow: 0 4px 12px rgba(53, 48, 42, 0.18);
+    --focus-ring: var(--accent);
+}
+
+/* ---------------- Base ---------------- */
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text);
+    transition: background 0.3s, color 0.3s;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
+}
+
+::selection {
+    background: var(--accent);
+    color: var(--on-accent);
+}
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--faint);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.op-item:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 1px;
+}
+
+/* ---------------- Toast (same look as the original app) ---------------- */
+
+#toast {
+    position: fixed;
+    top: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--success);
+    color: var(--on-accent);
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: 1000;
+    pointer-events: none;
+    box-shadow: var(--shadow);
+    min-width: 200px;
+    text-align: center;
+}
+
+#toast.error {
+    background: var(--danger);
+}
+
+/* ---------------- Top bar ---------------- */
+
+#banner {
+    flex: 0 0 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0 12px;
+    background: var(--title-bg);
+    border-bottom: 1px solid var(--border);
+}
+
+#app-name {
+    font-weight: bold;
+    font-size: 15px;
+    color: var(--text);
+}
+
+#app-tag {
+    margin-left: 10px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+#banner-controls {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.banner-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.theme-label {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* ---------------- Buttons & fields ---------------- */
+
+.btn {
+    padding: 6px 14px;
+    font-size: 13px;
+    color: var(--on-accent);
+    background: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.btn:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn-ghost {
+    padding: 5px 12px;
+    font-size: 12px;
+    color: var(--text-soft);
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.btn-ghost:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.btn-ghost.danger:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.field {
+    padding: 6px 8px;
+    font-size: 13px;
+    background: var(--input-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.field:focus {
+    border-color: var(--accent);
+}
+
+.save-select {
+    min-width: 130px;
+    max-width: 210px;
+}
+
+.theme-select {
+    min-width: 105px;
+}
+
+/* ---------------- Workspace: three columns ---------------- */
+
+#workspace {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+
+#filters {
+    flex: 0 0 24%;
+    min-width: 220px;
+    background: var(--pane);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+}
+
+#recipe {
+    flex: 0 0 26%;
+    min-width: 250px;
+    background: var(--pane);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+}
+
+#io {
+    flex: 1 1 0;
+    min-width: 320px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg);
+}
+
+/* ---------------- Collapsed left columns (icon rail + hover peek) ----------------
+   #workspace.left-collapsed: both left columns become 44px icon rails;
+   hovering either one reveals the RECIPE for a settings-only peek
+   (delete/reorder controls stay hidden — see the .rec-* rules below).
+   The toggle + state live in scripts/ui/leftpane.js (apm.ui.leftCollapsed);
+   the show/hide + hover behaviour below is pure CSS (no timers). */
+
+.pane-content {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.left-rail {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 0;
+    height: 100%;
+    color: var(--muted);
+}
+
+.left-rail:hover {
+    color: var(--text-soft);
+}
+
+.rail-glyph {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.rail-label {
+    writing-mode: vertical-rl;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+
+#workspace.left-collapsed #filters,
+#workspace.left-collapsed #recipe {
+    flex: 0 0 44px;
+    min-width: 44px;
+}
+
+#workspace.left-collapsed .pane-content {
+    display: none;
+}
+
+#workspace.left-collapsed .left-rail {
+    display: flex;
+}
+
+/* Hovering either collapsed column reveals the RECIPE only —
+   the Filters column stays a rail. */
+#workspace.left-collapsed #filters:hover ~ #recipe,
+#workspace.left-collapsed #recipe:hover {
+    flex: 0 0 26%;
+    min-width: 250px;
+}
+
+#workspace.left-collapsed #filters:hover ~ #recipe .pane-content,
+#workspace.left-collapsed #recipe:hover .pane-content {
+    display: flex;
+}
+
+#workspace.left-collapsed #filters:hover ~ #recipe .left-rail,
+#workspace.left-collapsed #recipe:hover .left-rail {
+    display: none;
+}
+
+/* Collapsed = settings-only: no add/remove/reorder mid-session;
+   the option values inside the recipe stay fully editable. */
+#workspace.left-collapsed #recipe .rec-delete,
+#workspace.left-collapsed #recipe .rec-handle,
+#workspace.left-collapsed #recipe #clear-recipe {
+    display: none;
+}
+
+/* ---------------- Pane titles ---------------- */
+
+.pane-title {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 32px;
+    padding: 4px 10px;
+    background: var(--title-bg);
+    border-bottom: 1px solid var(--border);
+}
+
+.pane-name {
+    font-weight: bold;
+    font-size: 13px;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.count {
+    margin-left: 5px;
+    font-size: 11px;
+    font-weight: normal;
+    color: var(--muted);
+}
+
+.pane-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.io-info {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.badge {
+    font-size: 11px;
+    font-weight: bold;
+    color: var(--on-accent);
+    background: var(--danger);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+/* ---------------- Column 1: filter palette ---------------- */
+
+.pane-search {
+    flex: 0 0 auto;
+    padding: 8px;
+}
+
+#filter-search {
+    width: 100%;
+    padding: 7px 10px;
+    font-size: 13px;
+    background: var(--input-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+#filter-search::placeholder {
+    color: var(--placeholder);
+    opacity: 1;
+}
+
+.op-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    list-style: none;
+    margin: 0;
+    padding: 0 8px 8px;
+}
+
+.op-item {
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    cursor: grab;
+    user-select: none;
+    transition: border-color 0.15s;
+}
+
+.op-item:hover {
+    border-color: var(--accent);
+}
+
+.op-item:active {
+    cursor: grabbing;
+}
+
+.op-item.dragging {
+    opacity: 0.5;
+}
+
+.op-name {
+    font-weight: bold;
+    font-size: 13px;
+    color: var(--text);
+}
+
+.op-desc {
+    margin-top: 3px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--muted);
+}
+
+/* ---------------- Column 2: recipe ---------------- */
+
+.hint {
+    flex: 0 0 auto;
+    padding: 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--faint);
+}
+
+.hint-empty {
+    flex: 0 0 auto;
+    margin: 8px;
+    padding: 16px 12px;
+    text-align: center;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--faint);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+}
+
+.list-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    list-style: none;
+    margin: 0;
+    padding: 8px;
+}
+
+.rec-card {
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: border-color 0.15s;
+}
+
+.rec-card.dragging {
+    opacity: 0.5;
+}
+
+.rec-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    cursor: grab;
+    user-select: none;
+}
+
+.rec-head:active {
+    cursor: grabbing;
+}
+
+.rec-handle {
+    color: var(--faint);
+    font-size: 14px;
+    line-height: 1;
+}
+
+.rec-name {
+    flex: 1;
+    font-weight: bold;
+    font-size: 13px;
+    color: var(--text);
+}
+
+.rec-delete {
+    background: none;
+    border: none;
+    padding: 0 4px;
+    font-size: 16px;
+    line-height: 1;
+    color: var(--muted);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.rec-delete:hover {
+    color: var(--danger);
+}
+
+.rec-desc {
+    padding: 0 10px 8px;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--muted);
+}
+
+.rec-options {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 8px 10px 10px;
+    border-top: 1px solid var(--border-soft);
+}
+
+.rec-options label {
+    font-size: 12px;
+    color: var(--text-soft);
+}
+
+.rec-options select,
+.rec-options input {
+    padding: 5px 8px;
+    font-size: 12px;
+    background: var(--input-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+}
+
+.rec-options input[type="number"] {
+    width: 110px;
+}
+
+.rec-status {
+    padding: 4px 10px 8px;
+    font-size: 11px;
+    line-height: 1.4;
+    border-top: 1px solid var(--border-soft);
+}
+
+.rec-status.ok {
+    color: var(--success);
+}
+
+.rec-status.none {
+    color: var(--muted);
+}
+
+.rec-status.err {
+    color: var(--danger);
+}
+
+.drop-indicator {
+    height: 3px;
+    margin: 0 2px;
+    background: var(--accent);
+    border-radius: 2px;
+    pointer-events: none;
+}
+
+/* ---------------- Column 3: input / output ---------------- */
+
+.io-pane {
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+#input-pane {
+    border-bottom: 1px solid var(--border);
+}
+
+/* Compact prefix block: visibly smaller than the full-size input/output panes. */
+.prefix-pane {
+    flex: 0 1 auto;
+    min-height: 90px;
+    max-height: 180px;
+    border-bottom: 1px solid var(--border);
+}
+
+.prefix-pane .io-body textarea {
+    min-height: 52px;
+}
+
+.io-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    padding: 8px;
+}
+
+.io-body textarea {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    resize: none;
+    background: var(--panel);
+    color: var(--text);
+}
+
+#output {
+    background: var(--panel-2);
+}
+
+#input::placeholder,
+#output::placeholder {
+    color: var(--placeholder);
+    opacity: 1;
+}
+
+/* ---------------- Narrow windows ---------------- */
+
+@media (max-width: 1100px) {
+    #filters {
+        flex-basis: 21%;
+    }
+
+    #recipe {
+        flex-basis: 24%;
+    }
+}
+
+@media (max-width: 900px) {
+    #app-tag {
+        display: none;
+    }
+
+    #filters {
+        flex-basis: 22%;
+        min-width: 185px;
+    }
+
+    #recipe {
+        flex-basis: 24%;
+        min-width: 205px;
+    }
+
+    #io {
+        min-width: 250px;
+    }
+}
+
+/* ---------------- Saves export / import modal ---------------- */
+
+#save-modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+}
+
+#save-modal[hidden] {
+    display: none;
+}
+
+#save-modal .modal-box {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-width: 640px;
+    width: calc(100% - 48px);
+    padding: 16px;
+    box-shadow: var(--shadow);
+}
+
+#save-modal h2 {
+    margin: 0 0 8px;
+    font-size: 16px;
+    color: var(--text);
+}
+
+#save-modal .modal-hint {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+#saves-json {
+    width: 100%;
+    min-height: 180px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--input-bg);
+    color: var(--text);
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+#save-modal .modal-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+#save-modal .modal-row .modal-hint {
+    margin: 0;
+    flex: 1;
+    min-width: 160px;
+}

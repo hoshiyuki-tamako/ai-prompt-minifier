@@ -1,0 +1,3 @@
+# AI Agent persistent state and execution logs
+.agent-state/
+agent-source/

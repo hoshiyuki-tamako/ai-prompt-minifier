@@ -4,369 +4,199 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Shrink AI prompts for 1:1 chats: a filter pipeline with live minify, length limits and HTML stripping. Pure HTML/CSS/JS, fully offline.">
     <title>AI Prompt Minifier</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1100px;
-            margin: 20px auto;
-            padding: 10px;
-            background: #121212;
-            color: #e0e0e0;
-            transition: background 0.3s, color 0.3s;
-            position: relative;
+    <link rel="icon"
+        href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230d6efd'/%3E%3Cpath d='M8 3v8M4 7l4 4 4-4' stroke='white' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+    <!-- PWA: manifest + icons (no service worker — not requested, and it
+         cannot run from file:// anyway; the app is already fully offline) -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="theme-color" content="#121212">
+    <script>
+        // Apply the saved theme before first paint (prevents a flash of the wrong theme).
+        try {
+            var __t = JSON.parse(localStorage.getItem("apm.theme") || "null");
+            if (typeof __t === "string" && __t) document.documentElement.className = __t;
+        } catch (err) {
+            // Storage unavailable — the default (dark) theme stays.
         }
-
-        .section {
-            margin-bottom: 20px;
-        }
-
-        label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 8px;
-            color: #cccccc;
-        }
-
-        textarea {
-            width: 100%;
-            font-family: 'Courier New', monospace;
-            font-size: 14px;
-            padding: 12px;
-            border: 1px solid #444444;
-            border-radius: 6px;
-            box-sizing: border-box;
-            resize: vertical;
-            background: #242424;
-            color: #e0e0e0;
-        }
-
-        #prefix {
-            height: 100px;
-        }
-
-        #content {
-            height: 300px;
-        }
-
-        #output {
-            height: 220px;
-            background: #2a2a2a;
-            cursor: text;
-        }
-
-        textarea::placeholder {
-            color: #777777;
-            opacity: 1;
-        }
-
-        .prefix-controls {
-            display: flex;
-            gap: 12px;
-            margin-top: 12px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .prefix-controls input[type="text"],
-        .prefix-controls select {
-            padding: 8px;
-            background: #333333;
-            color: #e0e0e0;
-            border: 1px solid #444444;
-            border-radius: 4px;
-            min-width: 200px;
-        }
-
-        .options {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin: 20px 0;
-        }
-
-        .limit-control {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        #char-limit {
-            width: 130px;
-            padding: 8px;
-            background: #333333;
-            color: #e0e0e0;
-            border: 1px solid #444444;
-            border-radius: 4px;
-        }
-
-        #char-count {
-            color: #aaaaaa;
-            font-size: 14px;
-        }
-
-        .buttons {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            align-items: center;
-            flex-wrap: wrap;
-            margin: 20px 0;
-        }
-
-        button {
-            padding: 12px 24px;
-            font-size: 16px;
-            background: #0d6efd;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-
-        button:hover {
-            background: #0b5ed7;
-        }
-
-        #toast {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #28a745;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 6px;
-            font-weight: bold;
-            opacity: 0;
-            transition: opacity 0.4s ease;
-            z-index: 1000;
-            pointer-events: none;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            min-width: 200px;
-            text-align: center;
-        }
-
-        #toast.error {
-            background: #dc3545;
-        }
-    </style>
+    </script>
+    <link rel="stylesheet" href="styles/style.css">
 </head>
 
 <body>
-    <div id="toast"></div>
-    <div class="section">
-        <label for="prefix">1. System Prompt / Prefix (natural language – extra spaces/newlines collapsed)</label>
-        <textarea id="prefix" placeholder="You are a helpful expert. Always respond with valid code..."></textarea>
-        <div class="prefix-controls">
-            <input type="text" id="prefix-name" placeholder="Preset name (e.g. Java Expert)">
-            <button id="save-prefix">Save Preset</button>
-            <select id="prefix-presets">
-                <option value="">-- Load Preset --</option>
-            </select>
-            <button id="delete-prefix">Delete Preset</button>
+    <div id="toast" role="status" aria-live="polite"></div>
+
+    <!-- ============ Top bar: title + local save/load + theme switch ============ -->
+    <header id="banner">
+        <div id="banner-title">
+            <span id="app-name">AI Prompt Minifier</span>
+            <span id="app-tag">compact prompts for 1:1 chats</span>
+        </div>
+        <div id="banner-controls">
+            <span class="banner-group">
+                <button id="left-toggle" type="button" class="btn-ghost"
+                    title="Collapse Filters + Recipe (hover a column to peek the recipe)">&#171;</button>
+            </span>
+            <span class="banner-group">
+                <button id="save-btn" type="button" title="Save prefix + recipe in this browser">Save</button>
+                <select id="save-list" class="field save-select" aria-label="Saved states">
+                    <option value="">-- Load --</option>
+                </select>
+                <button id="load-btn" type="button" title="Load the selected state — or reset prefix + recipe when -- Load -- is selected (input + theme kept)">Load</button>
+                <button id="delete-save-btn" type="button" class="btn-ghost danger"
+                    title="Delete the selected state">Delete</button>
+            </span>
+            <span class="banner-group">
+                <button id="saves-io-btn" type="button" class="btn-ghost"
+                    title="Export all saves as JSON, or import from JSON">Export/Import</button>
+            </span>
+            <span class="banner-group">
+                <label class="theme-label" for="theme-select">Theme</label>
+                <select id="theme-select" class="field theme-select" aria-label="Colour theme">
+                    <option value="">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="midnight">Midnight</option>
+                    <option value="paper">Paper</option>
+                </select>
+            </span>
+        </div>
+    </header>
+
+    <!-- ============ Workspace: filters | recipe | input/output ============ -->
+    <main id="workspace">
+        <!-- Column 1: filter palette (drag & drop source). .left-rail is
+             the collapsed icon strip; .pane-content holds the real content. -->
+        <section id="filters" aria-label="Filter palette">
+            <div class="left-rail" aria-hidden="true">
+                <span class="rail-glyph">&#9776;</span>
+                <span class="rail-label">Filters</span>
+            </div>
+            <div class="pane-content">
+                <div class="pane-title">
+                    <span class="pane-name">Filters<span id="filter-count" class="count"></span></span>
+                </div>
+                <div class="pane-search">
+                    <input type="search" id="filter-search" placeholder="Search filters..." autocomplete="off"
+                        aria-label="Search filters">
+                </div>
+                <ul id="filter-list" class="op-list"></ul>
+                <div id="no-filters" class="hint" hidden>No filters match your search.</div>
+                <div class="hint">Drag a filter into the Recipe, double-click it, or focus it and press Enter to add.</div>
+            </div>
+        </section>
+
+        <!-- Column 2: the recipe (filters currently applied, in order) -->
+        <section id="recipe" aria-label="Recipe">
+            <div class="left-rail" aria-hidden="true">
+                <span class="rail-glyph">&#9881;&#xFE0E;</span>
+                <span class="rail-label">Recipe</span>
+            </div>
+            <div class="pane-content">
+                <div class="pane-title">
+                    <span class="pane-name">Recipe</span>
+                    <span class="pane-controls">
+                        <button id="clear-recipe" type="button" class="btn-ghost"
+                            title="Remove all filters from the recipe">Clear</button>
+                    </span>
+                </div>
+                <div id="recipe-empty" class="hint-empty">
+                    The recipe is empty — the output is a copy of the prefix + input.<br>
+                    Drag filters here (top of the list runs first).
+                </div>
+                <ul id="rec-list" class="list-area" aria-label="Applied filters"></ul>
+            </div>
+        </section>
+
+        <!-- Column 3: prefix above the input, output on the bottom -->
+        <section id="io" aria-label="Prefix, input and output">
+            <section id="prefix-pane" class="io-pane prefix-pane" aria-label="System prompt prefix">
+                <div class="pane-title">
+                    <span class="pane-name">System Prompt / Prefix</span>
+                    <span class="pane-controls">
+                        <span id="prefix-count" class="io-info">0 chars</span>
+                        <button id="clear-prefix" type="button" class="btn-ghost" title="Clear the prefix">Clear</button>
+                    </span>
+                </div>
+                <div class="io-body">
+                    <textarea id="prefix" spellcheck="false"
+                        placeholder="Optional — placed above your input in the output..."></textarea>
+                </div>
+            </section>
+            <section id="input-pane" class="io-pane" aria-label="Input">
+                <div class="pane-title">
+                    <span class="pane-name">Input</span>
+                    <span class="pane-controls">
+                        <span id="input-count" class="io-info">0 chars</span>
+                        <button id="clear-input" type="button" class="btn-ghost" title="Clear the input">Clear</button>
+                    </span>
+                </div>
+                <div class="io-body">
+                    <textarea id="input" spellcheck="false"
+                        placeholder="Paste your prompt: system instructions, code, JSON, examples..."></textarea>
+                </div>
+            </section>
+            <section id="output-pane" class="io-pane" aria-label="Output">
+                <div class="pane-title">
+                    <span class="pane-name">Output</span>
+                    <span class="pane-controls">
+                        <span id="output-count" class="io-info">0 chars</span>
+                        <span id="truncated-badge" class="badge" hidden>truncated</span>
+                        <button id="copy-output" type="button" class="btn-ghost"
+                            title="Copy output to clipboard">Copy</button>
+                    </span>
+                </div>
+                <div class="io-body">
+                    <textarea id="output" readonly spellcheck="false"
+                        placeholder="Result appears here automatically..."></textarea>
+                </div>
+            </section>
+        </section>
+    </main>
+
+    <!-- ============ Saves export / import modal (apm.saves as JSON) ============ -->
+    <div id="save-modal" hidden>
+        <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="save-modal-title">
+            <h2 id="save-modal-title">Export / import saves</h2>
+            <p class="modal-hint" id="save-modal-hint">Click the text to copy it.</p>
+            <textarea id="saves-json" readonly spellcheck="false"
+                aria-label="Saves as JSON"></textarea>
+            <div class="modal-row">
+                <button id="saves-copy-btn" type="button" class="btn-ghost">Copy</button>
+                <button id="saves-download-btn" type="button" class="btn-ghost">Download (.json)</button>
+                <button id="saves-import-btn" type="button" class="btn-ghost">Import&hellip;</button>
+                <button id="save-modal-close" type="button">Close</button>
+            </div>
+            <div class="modal-row" id="import-confirm-row" hidden>
+                <span class="modal-hint">Paste your JSON here, then confirm.</span>
+                <button id="saves-import-confirm" type="button">Confirm import</button>
+                <button id="saves-import-cancel" type="button" class="btn-ghost">Cancel</button>
+            </div>
         </div>
     </div>
-    <div class="section">
-        <label for="content">2. Content (code, instructions, JSON – intelligently minified)</label>
-        <textarea id="content"
-            placeholder="Paste code, additional instructions, examples, JSON, etc. Unnecessary whitespace removed, required spaces between identifiers preserved, strings kept exactly."></textarea>
-    </div>
-    <div class="options">
-        <div class="limit-control">
-            <label>
-                <input type="checkbox" id="limit-toggle" checked>
-                Enable character limit
-            </label>
-            <input type="number" id="char-limit" value="390000" min="1000" step="1000">
-        </div>
-        <div id="char-count">Characters: 0</div>
-    </div>
-    <div class="section">
-        <label for="output">3. Minified Output (ready for AI prompt)</label>
-        <textarea id="output" readonly placeholder="Minified result will appear here automatically..."></textarea>
-    </div>
-    <div class="buttons">
-        <button id="copy">Copy Output to Clipboard</button>
-    </div>
-    <script>
-        // Minifiers
-        function minifyNatural(text) {
-            if (!text.trim()) return '';
-            return text.replace(/\s+/g, ' ').trim();
-        }
-        function minifyCode(text) {
-            if (!text.trim()) return '';
-            const output = [];
-            let i = 0;
-            let pendingSpace = false;
-            while (i < text.length) {
-                const char = text[i];
-                if (char === '"') {
-                    if (pendingSpace) pendingSpace = false;
-                    output.push('"');
-                    i++;
-                    while (i < text.length) {
-                        const c = text[i];
-                        if (c === '\\') {
-                            output.push('\\');
-                            i++;
-                            if (i < text.length) {
-                                output.push(text[i]);
-                                i++;
-                            }
-                        } else if (c === '"') {
-                            output.push('"');
-                            i++;
-                            pendingSpace = true;
-                            break;
-                        } else {
-                            output.push(c);
-                            i++;
-                        }
-                    }
-                    continue;
-                }
-                if (/\s/.test(char)) {
-                    pendingSpace = true;
-                    i++;
-                } else {
-                    if (pendingSpace) {
-                        const lastChar = output.length > 0 ? output[output.length - 1] : null;
-                        if (lastChar && /\w/.test(lastChar) && /\w/.test(char)) {
-                            output.push(' ');
-                        }
-                        pendingSpace = false;
-                    }
-                    output.push(char);
-                    i++;
-                }
-            }
-            return output.join('').trim();
-        }
-        // Update output
-        function updateOutput() {
-            const prefix = document.getElementById('prefix').value;
-            const content = document.getElementById('content').value;
-            const minPrefix = minifyNatural(prefix);
-            const minContent = minifyCode(content);
-            const parts = [];
-            if (minPrefix) parts.push(minPrefix);
-            if (minContent) parts.push(minContent);
-            let combined = parts.join(' ');
-            let finalText = combined;
-            let truncated = false;
-            const limitToggle = document.getElementById('limit-toggle');
-            if (limitToggle.checked) {
-                const limit = parseInt(document.getElementById('char-limit').value) || 0;
-                if (limit > 0 && combined.length > limit) {
-                    finalText = combined.substring(0, limit);
-                    truncated = true;
-                }
-            }
-            document.getElementById('output').value = finalText;
-            document.getElementById('char-count').textContent = `Characters: ${finalText.length}${truncated ? ' (truncated)' : ''}`;
-        }
-        // Live updates
-        document.getElementById('prefix').addEventListener('input', () => {
-            updateOutput();
-            localStorage.setItem('lastPrefix', document.getElementById('prefix').value);
-        });
-        document.getElementById('content').addEventListener('input', updateOutput);
-        document.getElementById('limit-toggle').addEventListener('change', () => {
-            const checked = document.getElementById('limit-toggle').checked;
-            document.getElementById('char-limit').disabled = !checked;
-            updateOutput();
-        });
-        document.getElementById('char-limit').addEventListener('input', updateOutput);
-        // Preset management
-        let presets = JSON.parse(localStorage.getItem('prefixPresets') || '{}');
-        function refreshPresetSelect() {
-            const select = document.getElementById('prefix-presets');
-            select.innerHTML = '<option value="">-- Load Preset --</option>';
-            Object.keys(presets).sort().forEach(name => {
-                const opt = document.createElement('option');
-                opt.value = name;
-                opt.textContent = name;
-                select.appendChild(opt);
-            });
-        }
-        document.getElementById('save-prefix').addEventListener('click', () => {
-            const name = document.getElementById('prefix-name').value.trim();
-            if (!name) {
-                showToast('Enter a preset name', true);
-                return;
-            }
-            const text = document.getElementById('prefix').value;
-            if (presets[name] && !confirm(`Overwrite existing preset "${name}"?`)) return;
-            presets[name] = text;
-            localStorage.setItem('prefixPresets', JSON.stringify(presets));
-            document.getElementById('prefix-name').value = '';
-            refreshPresetSelect();
-            showToast(`Preset "${name}" saved`);
-        });
-        document.getElementById('prefix-presets').addEventListener('change', (e) => {
-            const name = e.target.value;
-            if (name && presets[name] !== undefined) {
-                const presetText = presets[name] || '';
-                document.getElementById('prefix').value = presetText;
-                document.getElementById('prefix-name').value = name;
-                localStorage.setItem('lastPrefix', presetText);
-                updateOutput();
-            } else {
-                document.getElementById('prefix-name').value = '';
-            }
-        });
-        document.getElementById('delete-prefix').addEventListener('click', () => {
-            const select = document.getElementById('prefix-presets');
-            const name = select.value;
-            if (!name) {
-                showToast('Select a preset to delete', true);
-                return;
-            }
-            if (confirm(`Delete preset "${name}"?`)) {
-                delete presets[name];
-                localStorage.setItem('prefixPresets', JSON.stringify(presets));
-                refreshPresetSelect();
-                select.value = '';
-                document.getElementById('prefix-name').value = '';
-                showToast(`Preset "${name}" deleted`);
-            }
-        });
-        // Load last used prefix on start
-        const lastPrefix = localStorage.getItem('lastPrefix');
-        if (lastPrefix !== null) {
-            document.getElementById('prefix').value = lastPrefix;
-        }
-        // Initial setup
-        refreshPresetSelect();
-        updateOutput();
-        // Toast
-        function showToast(message, isError = false) {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.classList.toggle('error', isError);
-            toast.style.opacity = 1;
-            setTimeout(() => {
-                toast.style.opacity = 0;
-            }, 2000);
-        }
-        // Copy
-        document.getElementById('copy').addEventListener('click', async () => {
-            const output = document.getElementById('output');
-            output.select();
-            try {
-                await navigator.clipboard.writeText(output.value);
-                showToast('Copied!');
-            } catch (err) {
-                showToast('Copy failed – select & copy manually', true);
-            }
-        });
-    </script>
+
+    <!-- App scripts: plain, in dependency order (no modules, so file:// double-click works) -->
+    <script src="scripts/core/dom.js"></script>
+    <script src="scripts/core/storage.js"></script>
+    <script src="scripts/core/state.js"></script>
+    <script src="scripts/core/toast.js"></script>
+    <script src="scripts/filters/registry.js"></script>
+    <script src="scripts/filters/minify.js"></script>
+    <script src="scripts/filters/output-length-limit.js"></script>
+    <script src="scripts/filters/strip-html.js"></script>
+    <script src="scripts/filters/remove-comment.js"></script>
+    <script src="scripts/filters/remove-extra-space.js"></script>
+    <script src="scripts/filters/regex-replace.js"></script>
+    <script src="scripts/ui/theme.js"></script>
+    <script src="scripts/ui/palette.js"></script>
+    <script src="scripts/ui/recipe.js"></script>
+    <script src="scripts/ui/dnd.js"></script>
+    <script src="scripts/ui/leftpane.js"></script>
+    <script src="scripts/ui/io.js"></script>
+    <script src="scripts/ui/saves.js"></script>
+    <script src="scripts/main.js"></script>
 </body>
 
 </html>
