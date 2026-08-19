@@ -95,9 +95,10 @@
                 });
             });
             dynamicCheckboxes.forEach(function (d) {
-                var vis = d.cb.visible(entry.options) === true;
-                d.label.hidden = !vis;
-                d.input.hidden = !vis;
+                // Hide the WHOLE row — a hidden label+input would still
+                // leave an empty .rec-opt flex item charging the column
+                // gap (dead space per hidden option).
+                d.row.hidden = d.cb.visible(entry.options) !== true;
             });
         }
 
@@ -262,21 +263,21 @@
                 // `def`; legacy checkboxes default ON, the json /
                 // markdown value options default OFF.
                 input.checked = (entry.options[cb.key] !== undefined) ? (entry.options[cb.key] !== false) : (cb.def !== undefined ? cb.def : true);
+                var row = optRow(cbsBox);
+                row.appendChild(label);
+                row.appendChild(input);
                 var isVis = typeof cb.visible === "function";
                 if (isVis) {
-                    var vis = cb.visible(entry.options) === true;
-                    label.hidden = !vis;
-                    input.hidden = !vis;
-                    dynamicCheckboxes.push({ cb: cb, label: label, input: input });
+                    // Whole-row hiding: removes the row from the flex
+                    // layout, so a hidden option takes zero space.
+                    row.hidden = cb.visible(entry.options) !== true;
+                    dynamicCheckboxes.push({ cb: cb, row: row });
                 }
                 input.addEventListener("change", function () {
                     entry.options[cb.key] = input.checked;
                     refreshDynamic(); // no-op when the card has none
                     APM.io.recompute();
                 });
-                var row = optRow(cbsBox);
-                row.appendChild(label);
-                row.appendChild(input);
             });
             card.appendChild(cbsBox);
         }

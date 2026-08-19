@@ -722,6 +722,10 @@ textarea:focus-visible,
     flex-wrap: wrap; /* narrow-column fallback: wrap, don't overflow */
 }
 
+.rec-opt[hidden] {
+    display: none; /* the hidden attribute must win over display:flex (same pattern as #save-modal[hidden]) */
+}
+
 .rec-options label {
     font-size: 12px;
     color: var(--text-soft);
