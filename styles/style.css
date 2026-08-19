@@ -708,11 +708,18 @@ textarea:focus-visible,
 
 .rec-options {
     display: flex;
-    align-items: center;
+    flex-direction: column; /* one option per row (M7) */
+    align-items: stretch;
     gap: 8px;
-    flex-wrap: wrap;
     padding: 8px 10px 10px;
     border-top: 1px solid var(--border-soft);
+}
+
+.rec-opt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap; /* narrow-column fallback: wrap, don't overflow */
 }
 
 .rec-options label {

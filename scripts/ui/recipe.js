@@ -16,6 +16,16 @@
 
     function buildCard(entry, index) {
         var el = APM.dom.el;
+
+        // One option = one row (M7): a .rec-opt wrapper groups a label
+        // with its control(s) so card options stack vertically in the
+        // .rec-options box instead of flowing inline.
+        function optRow(box) {
+            var row = el("div", "rec-opt");
+            box.appendChild(row);
+            return row;
+        }
+
         var def = APM.filters.get(entry.id);
         var card = el("li", "rec-card");
         card.dataset.index = String(index);
@@ -115,8 +125,9 @@
                 entry.options.unit = uSel.value;
                 APM.io.recompute();
             });
-            opts.appendChild(uLabel);
-            opts.appendChild(uSel);
+            var uRow = optRow(opts);
+            uRow.appendChild(uLabel);
+            uRow.appendChild(uSel);
 
             var label = el("label", null, "Max length:");
             var sel = el("select");
@@ -143,9 +154,11 @@
             var isCustom = String(entry.options.preset) === "custom";
             num.hidden = !isCustom;
 
-            opts.appendChild(label);
-            opts.appendChild(sel);
-            opts.appendChild(num);
+            // Custom number belongs to the Max length option (same row).
+            var mRow = optRow(opts);
+            mRow.appendChild(label);
+            mRow.appendChild(sel);
+            mRow.appendChild(num);
 
             sel.addEventListener("change", function () {
                 entry.options.preset = sel.value;
@@ -194,8 +207,9 @@
                     refreshDynamic(); // no-op when the card has none
                     APM.io.recompute();
                 });
-                optsBox.appendChild(label);
-                optsBox.appendChild(select);
+                var row = optRow(optsBox);
+                row.appendChild(label);
+                row.appendChild(select);
             });
             card.appendChild(optsBox);
         }
@@ -226,8 +240,9 @@
                     refreshDynamic(); // no-op when the card has none
                     APM.io.recompute();
                 });
-                inputsBox.appendChild(label);
-                inputsBox.appendChild(input);
+                var row = optRow(inputsBox);
+                row.appendChild(label);
+                row.appendChild(input);
             });
             card.appendChild(inputsBox);
         }
@@ -259,8 +274,9 @@
                     refreshDynamic(); // no-op when the card has none
                     APM.io.recompute();
                 });
-                cbsBox.appendChild(label);
-                cbsBox.appendChild(input);
+                var row = optRow(cbsBox);
+                row.appendChild(label);
+                row.appendChild(input);
             });
             card.appendChild(cbsBox);
         }
