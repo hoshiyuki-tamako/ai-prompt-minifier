@@ -1067,6 +1067,11 @@
         "cpp", "csharp", "c", "python", "ruby", "css"
     ];
 
+    // Score every language with its markers (early exit at 3 hits),
+    // subtract its foreign-syntax penalties, and keep the strictly
+    // best positive score (ties go to the earlier GUESS_PRIORITY
+    // entry). Returns null on zero/negative scores = the caller
+    // leaves the text unchanged (the safe identity fallback).
     function guessLang(text) {
         var best = null;
         var bestScore = 0;

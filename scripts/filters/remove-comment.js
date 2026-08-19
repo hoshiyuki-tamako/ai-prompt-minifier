@@ -472,6 +472,10 @@
         return 0;
     }
 
+    // The core single-pass scanner: strings always opaque (step 1),
+    // then line comments (wordStart/shebang guards), then block
+    // comments (nested/lineScoped guards); each removed comment becomes
+    // exactly one space; non-comment bytes are preserved exactly.
     function removeComments(text, language) {
         // Unknown keys (e.g. corrupt saved options) fall back to JS/TS.
         var g = GRAMMAR[language] || GRAMMAR["js-ts"];
