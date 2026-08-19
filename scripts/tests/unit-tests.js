@@ -298,6 +298,54 @@
                     "let x = 1 // c",
                     "swift",
                     "let x = 1  "
+                ],
+                [
+                    "ruby =begin/=end (line-start delims)",
+                    "x = 1 # c\n=begin\nhidden\n=end\ny = 2",
+                    "ruby",
+                    "x = 1  \n \ny = 2"
+                ],
+                [
+                    "ruby mid-line =end is not a close",
+                    "=begin\na # =end\nb\n=end\nc",
+                    "ruby",
+                    " \nc"
+                ],
+                [
+                    "powershell <# #> block",
+                    "$x = 1 <# b #> $y = 2",
+                    "powershell",
+                    "$x = 1   $y = 2"
+                ],
+                [
+                    "php # line",
+                    "<?php $x = 1; # c",
+                    "php",
+                    "<?php $x = 1;  "
+                ],
+                [
+                    "js-ts unterminated template (to end)",
+                    "s = `a // b",
+                    "js-ts",
+                    "s = `a // b"
+                ],
+                [
+                    "kotlin nested block",
+                    "val x = 1 /* a /* b */ c */",
+                    "kotlin",
+                    "val x = 1  "
+                ],
+                [
+                    "swift nested block",
+                    "let x = 1 /* a /* b */ c */",
+                    "swift",
+                    "let x = 1  "
+                ],
+                [
+                    "markdown: only <!-- --> is a comment",
+                    "# T <!-- c -->\n\ntext",
+                    "markdown",
+                    "# T  \n\ntext"
                 ]
             ],
             "rcAuto": [
@@ -1044,6 +1092,90 @@
                     "python",
                     false,
                     "b=1# c# top x=\"a  b\""
+                ],
+                [
+                    "powershell ON",
+                    "$x = Get-Content \"a # b\" # line\n<# block\ncomment #>",
+                    "powershell",
+                    true,
+                    "$x=Get-Content\"a # b\""
+                ],
+                [
+                    "powershell OFF",
+                    "$x = Get-Content \"a # b\" # line\n<# block\ncomment #>",
+                    "powershell",
+                    false,
+                    "$x=Get-Content\"a # b\"# line<# block\ncomment #>"
+                ],
+                [
+                    "js regex literal after keyword",
+                    "var r = /a b/.test(\"x\")",
+                    "javascript",
+                    true,
+                    "var r=/a b/.test(\"x\")"
+                ],
+                [
+                    "js division after digit",
+                    "a = 10 / 2;",
+                    "javascript",
+                    true,
+                    "a=10/2;"
+                ],
+                [
+                    "html raw text (script) byte-exact ON",
+                    "<script>var x = \"a  b\"; // c</script>",
+                    "html",
+                    true,
+                    "<script>var x = \"a  b\"; // c</script>"
+                ],
+                [
+                    "html raw text (script) byte-exact OFF",
+                    "<script>var x = \"a  b\"; // c</script>",
+                    "html",
+                    false,
+                    "<script>var x = \"a  b\"; // c</script>"
+                ],
+                [
+                    "html bare < > keep spaces",
+                    "a < b > c",
+                    "html",
+                    true,
+                    "a < b > c"
+                ],
+                [
+                    "ruby =begin ON",
+                    "x = 1 # c\n=begin\nhidden\n=end\ny = 2",
+                    "ruby",
+                    true,
+                    "x=1 y=2"
+                ],
+                [
+                    "ruby =begin OFF",
+                    "x = 1 # c\n=begin\nhidden\n=end\ny = 2",
+                    "ruby",
+                    false,
+                    "x=1# c=begin\nhidden\n=end y=2"
+                ],
+                [
+                    "go backtick raw ON",
+                    "s := `a // b`\n// c",
+                    "go",
+                    true,
+                    "s:=`a // b`"
+                ],
+                [
+                    "go backtick raw OFF",
+                    "s := `a // b`\n// c",
+                    "go",
+                    false,
+                    "s:=`a // b`// c"
+                ],
+                [
+                    "kotlin nested block ON",
+                    "val x = 1 /* a /* b */ c */",
+                    "kotlin",
+                    true,
+                    "val x=1"
                 ]
             ],
             "cmAuto": [
@@ -1762,9 +1894,11 @@
 
     // ---- minify (t95 pin set) ----
     V.minify.forEach(function (c) { add("minify", c[0], c[2], "minify", [c[1]]); });
+    add("minify", "unterminated quote (consumes to end)", "a\"b c", "minify", ["a \"b c"]);
 
     // ---- strip-html (t95 + entity edges) ----
     V.strip.forEach(function (c) { add("strip-html", c[0], c[2], "strip", [c[1]]); });
+    add("strip-html", "unterminated comment (consumes to end)", "a  ", "strip", ["a <!-- x"]);
 
     // ---- remove-comment (t95/t138 sets; [name, input, lang, expected]) ----
     V.rcExplicit.forEach(function (c) { add("remove-comment", c[0], c[3], "rc", [c[1], c[2]]); });
@@ -1899,6 +2033,7 @@
         if (c[3]) a.push(c[3]);
         add("limit", c[0], c[4], "limit", a);
     });
+    add("limit", "custom: invalid custom number -> identity (no cut)", { text: "xxxxxxxxxxxxxxxxxxxx", truncated: false }, "limit", ["xxxxxxxxxxxxxxxxxxxx", { preset: "custom", custom: "abc" }]);
     add("limit", "descriptor: preset labels (unit-neutral)", V.desc["limit presets"], "limitPresets");
     add("limit", "descriptor: units + labels", { values: V.desc["limit units"], labels: V.desc["limit unit labels"] }, "limitUnits");
     add("code-minify", "descriptor: 21 language options (exact order + labels)", { order: V.desc["cm lang order"], labels: V.desc["cm lang labels"] }, "cmLangs");
@@ -1922,6 +2057,7 @@
     add("registry", "registry: 9 filters registered", V.desc["filter ids"], "filterIds");
     add("registry", "registry: metas pass-through (regex card only)", { text: "a# b#", metas: [{ index: 0, meta: "2 replacements" }] }, "registryMetas", ["a1 b22", [{ id: "regex-replace", options: { pattern: "\\d+", replacement: "#" } }]]);
     add("registry", "registry: mixed recipe (minify + regex) metas at index 1", { text: "a B", metas: [{ index: 1, meta: "1 replacement" }] }, "registryMetas", ["a   b", [{ id: "minify", options: {} }, { id: "regex-replace", options: { pattern: "b", replacement: "B" } }]]);
+    add("registry", "registry: unknown filter id is skipped (input unchanged)", { text: "x", truncated: false, metas: [] }, "registryUnknown", ["x", [{ id: "no-such-filter", options: {} }]]);
 
     // ---- pipeline (t132: prefix NEVER minified — real io.recompute) ----
     var PIPE = [
@@ -1945,6 +2081,9 @@
     add("save model", "load: hard save keeps input+theme", true, "loadKeeps");
     add("save model", "save: a dedup card round-trips with options intact", true, "dedupSave");
     add("save model", "collapse: apm.ui.leftCollapsed is boolean-or-null", true, "collapseKey");
+    add("save model", "import: valid map replaces the saves", true, "importValid");
+    add("save model", "import: invalid entries skipped, the good one kept", true, "importSkipped");
+    add("save model", "import: bad root (array) leaves saves untouched", true, "importBadRoot");
 
     // ---- theme (independent auto-saved setting) ----
     add("theme", "theme: 4 themes, '' = Dark default", { "": "Dark", light: "Light", midnight: "Midnight", paper: "Paper" }, "themeNames");
@@ -1985,15 +2124,16 @@
     add("paneStatus", "paneStatus: blur reverts to base only", { p: "0 ln", i: "2 ln", o: "2 ln" }, "psBlur");
     add("paneStatus", "paneStatus: zero pipeline impact (pinned doc)", "x=1", "psNoImpact");
 
-    // ---- splits (resizable columns + peek width; clamp pins
-    //      computed from the contract floors at the 1280px context
-    //      width — t156_pins, never eyeballed) ----
+    // ---- splits (resizable columns + peek width; the clamp pins are
+    //      CONTRACT-FLOOR INVARIANTS (220/250/320/250px/60% from
+    //      scripts/ui/splits.js) checked against the LIVE context size —
+    //      viewport-independent, never a fixed-width pin, never eyeballed) ----
     add("splits", "splits: defaults (absent key) = 24%/26%", { f: "24%", r: "26%" }, "spDefaults");
     add("splits", "splits: setPair persists the {f,r} % shape", { f: "30%", r: "34%" }, "spShape");
-    add("splits", "splits: clamp — tiny values hit the 220/250px floors", { f: "17.2%", r: "19.5%" }, "spClampSmall");
-    add("splits", "splits: clamp — huge values keep io ≥ 320px", { f: "35.9%", r: "38.3%" }, "spClampHuge");
+    add("splits", "splits: clamp — tiny values hit the 220/250px floors (any viewport)", true, "spClampSmall");
+    add("splits", "splits: clamp — huge values keep io ≥ 320px (any viewport)", true, "spClampHuge");
     add("splits", "splits: clearPersisted → defaults + key gone + inline vars dropped", true, "spReset");
-    add("splits", "splits: peek clamp (min 250px, max 60%)", { low: "19.5", high: "60" }, "spPeek");
+    add("splits", "splits: peek clamp — 250px min / 60% max (any viewport)", true, "spPeek");
     add("splits", "splits: hard save shape unchanged after a resize", true, "spProfileExempt");
     add("splits", "splits: soft save shape unchanged after a resize", true, "spSoftExempt");
 
@@ -2116,6 +2256,35 @@
     function collapseKey() {
         var v = APM.storage.get("apm.ui.leftCollapsed");
         return v === null || typeof v === "boolean";
+    }
+
+    // ---- import-validation drivers (real modal flow; the runner's
+    //      capture/restore owns the user's apm.saves either way) ----
+    function importDrive(raw, accept) {
+        var orig = window.confirm;
+        window.confirm = function () { return accept; };
+        try {
+            APM.dom.$("saves-json").value = raw;
+            APM.dom.$("saves-import-confirm").click();
+        } finally {
+            window.confirm = orig;
+        }
+    }
+    function importValid() {
+        importDrive('{"ok": {"prefix": "P", "recipe": [{"id": "minify", "options": {}}]}}', true);
+        var s = APM.storage.get("apm.saves") || {};
+        return Object.keys(s).length === 1 && !!s.ok && s.ok.prefix === "P" &&
+            s.ok.recipe.length === 1 && s.ok.recipe[0].id === "minify";
+    }
+    function importSkipped() {
+        importDrive('{"bad1": {"prefix": 42}, "bad2": {"recipe": [{"id": "nope"}]}, "good": {"prefix": "G"}}', true);
+        var s = APM.storage.get("apm.saves") || {};
+        return Object.keys(s).length === 1 && !!s.good && s.good.prefix === "G";
+    }
+    function importBadRoot() {
+        var before = APM.storage.get("apm.saves");
+        importDrive("[1,2]", false);
+        return JSON.stringify(APM.storage.get("apm.saves")) === JSON.stringify(before);
     }
 
     function themeNames() { return APM.theme.names; }
@@ -2313,8 +2482,24 @@
         var stored = APM.storage.get("apm.ui.splits");
         return (v.f === stored.f && v.r === stored.r) ? { f: stored.f, r: stored.r } : stored;
     }
-    function spClampSmall() { APM.splits.setPair(1, 1); return APM.storage.get("apm.ui.splits"); }
-    function spClampHuge() { APM.splits.setPair(90, 90); return APM.storage.get("apm.ui.splits"); }
+    function spClampSmall() {
+        // Contract floors (splits.js): filters >= 220px, recipe >= 250px.
+        // A tiny request must land on those floors; tolerance covers
+        // round1()'s 0.1% rounding (<= ~1px at test viewports).
+        APM.splits.setPair(1, 1);
+        var v = APM.storage.get("apm.ui.splits");
+        var w = APM.dom.$("workspace").clientWidth;
+        return Math.abs(parseFloat(v.f) / 100 * w - 220) <= 1 &&
+            Math.abs(parseFloat(v.r) / 100 * w - 250) <= 1;
+    }
+    function spClampHuge() {
+        // Contract: the io pane keeps its 320px floor (two 5px gutters).
+        APM.splits.setPair(90, 90);
+        var v = APM.storage.get("apm.ui.splits");
+        var w = APM.dom.$("workspace").clientWidth;
+        var io = w * (1 - parseFloat(v.f) / 100 - parseFloat(v.r) / 100) - 10;
+        return io >= 319;
+    }
     function spReset() {
         APM.splits.setPair(30, 34);
         APM.splits.clearPersisted();
@@ -2323,7 +2508,10 @@
             APM.dom.$("workspace").style.getPropertyValue("--col-f") === "";
     }
     function spPeek() {
-        return { low: String(APM.splits.peekPct(1)), high: String(APM.splits.peekPct(99)) };
+        // Contract: peek min 250px of the viewport, max 60%.
+        var vw = window.innerWidth;
+        return parseFloat(APM.splits.peekPct(1)) / 100 * vw >= 249 &&
+            APM.splits.peekPct(99) === 60;
     }
     function spProfileExempt() {
         APM.splits.setPair(30, 34);
@@ -2436,12 +2624,16 @@
             case "filterIds": return F.ids();
             case "defaults": return get(a[0]).defaultOptions();
             case "registryMetas": { var r2 = F.run(a[0], a[1]); return { text: r2.text, metas: r2.metas }; }
+            case "registryUnknown": { var r4 = F.run(a[0], a[1]); return { text: r4.text, truncated: r4.truncated, metas: r4.metas }; }
             case "pipeline": return pipeline(a[0], a[1], a[2]);
             case "saveShape": return saveShape();
             case "softShape": return softShape();
             case "loadEmpty": return loadEmpty();
             case "loadKeeps": return loadKeeps();
             case "collapseKey": return collapseKey();
+            case "importValid": return importValid();
+            case "importSkipped": return importSkipped();
+            case "importBadRoot": return importBadRoot();
             case "themeNames": return themeNames();
             case "themeKey": return themeKey();
             case "paletteOrder": return paletteOrder();
