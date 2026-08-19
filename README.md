@@ -116,7 +116,7 @@ The complete app is **30 files**:
 | `scripts/ui/saves.js`                   | Top-bar Save / Load / Delete + debounced auto-resume (soft save) + the export/import JSON modal |
 | `scripts/tests/unit-tests.js`           | Built-in unit-test runner — `APM.test.run()` in the browser console (392 pinned cases; no external tools; zero impact until you run it) |
 
-Documentation: this `README.md` (user-facing) + the docs live in the code (minimal JSDoc directly above the functions they describe) + [`.ai/skills/`](.ai/skills/) (project orientation, unit testing, the verification battery, and the add-a-filter workflow — written for AI and human readers alike), + [`SUGGESTION.md`](SUGGESTION.md) (scope overview + future-work ideas).
+Documentation: this `README.md` (user-facing) + the docs live in the code (minimal JSDoc directly above the functions they describe) + [`.ai/skills/`](.ai/skills/) (project orientation, unit testing, the verification battery, and the add-a-filter workflow — written for AI and human readers alike)
 
 ### Code layout
 
