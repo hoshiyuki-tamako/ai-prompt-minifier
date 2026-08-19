@@ -2084,6 +2084,7 @@
     add("save model", "import: valid map replaces the saves", true, "importValid");
     add("save model", "import: invalid entries skipped, the good one kept", true, "importSkipped");
     add("save model", "import: bad root (array) leaves saves untouched", true, "importBadRoot");
+    add("save model", "import: legacy {name: prefix} map accepted (empty skipped)", true, "importLegacy");
     add("save model", "legacy: prefixPresets migrate to v3 saves (collision kept, key removed)", true, "legacyMigrate");
     add("save model", "legacy: no legacy keys -> no-op, saves untouched", true, "legacyMigrateNone");
     add("save model", "legacy: lastPrefix seeds apm.lastState when absent", true, "legacyResume");
@@ -2291,6 +2292,14 @@
         importDrive("[1,2]", false);
         return JSON.stringify(APM.storage.get("apm.saves")) === JSON.stringify(before);
     }
+    function importLegacy() {
+        importDrive('{"Python Guru": "You are a Python guru.", "empty": ""}', true);
+        var s = APM.storage.get("apm.saves") || {};
+        var p = s["Python Guru"];
+        return Object.keys(s).length === 1 && !!p && p.prefix === "You are a Python guru." &&
+            p.recipe.length === 1 && p.recipe[0].id === "minify";
+    }
+
     // ---- legacy-migration drivers (old app: prefixPresets JSON map +
     //      raw lastPrefix string; the runner capture/restore owns both
     //      legacy keys so the tests never touch real user data) ----
@@ -2693,6 +2702,7 @@
             case "importValid": return importValid();
             case "importSkipped": return importSkipped();
             case "importBadRoot": return importBadRoot();
+            case "importLegacy": return importLegacy();
             case "legacyMigrate": return legacyMigrate();
             case "legacyMigrateNone": return legacyMigrateNone();
             case "legacyResume": return legacyResume();

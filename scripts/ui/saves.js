@@ -208,11 +208,15 @@
         ta.focus();
     }
 
-    // Validate an imported map: { name: { prefix?: string,
-    // recipe?: [{ id: known filter, options?: object }] } }. Invalid
-    // entries (and unknown filter ids) are SKIPPED, never fatal. The
-    // accepted entries are rebuilt as clean { prefix, recipe } pairs so
-    // a later hard load needs nothing else.
+    // Validate an imported map. Two shapes are accepted:
+    //   v3:     { name: { prefix?: string, recipe?: [{ id: known filter,
+    //            options?: object }] } }
+    //   legacy: { name: "prefix text" } — the old app's prefixPresets
+    //            map; rebuilt with the [Minify] recipe (the old app
+    //            always minified the content).
+    // Invalid entries (and unknown filter ids) are SKIPPED, never
+    // fatal. The accepted entries are rebuilt as clean
+    // { prefix, recipe } pairs so a later hard load needs nothing else.
     function validateSaves(raw) {
         var valid = {};
         var skipped = 0;
@@ -222,7 +226,13 @@
         Object.keys(raw).forEach(function (name) {
             var n = String(name).trim().slice(0, 80);
             var v = raw[name];
-            if (!n || !v || typeof v !== "object" || Array.isArray(v)) { skipped++; return; }
+            if (!n) { skipped++; return; }
+            if (typeof v === "string") { // legacy { name: "prefix" }
+                if (v === "") { skipped++; return; }
+                valid[n] = { prefix: v, recipe: LEGACY_RECIPE };
+                return;
+            }
+            if (!v || typeof v !== "object" || Array.isArray(v)) { skipped++; return; }
             var hasPrefix = Object.prototype.hasOwnProperty.call(v, "prefix");
             var hasRecipe = Object.prototype.hasOwnProperty.call(v, "recipe");
             if (!hasPrefix && !hasRecipe) { skipped++; return; }
