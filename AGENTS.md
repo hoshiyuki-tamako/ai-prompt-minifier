@@ -44,7 +44,7 @@ Co-authored-by: AI Agent <ai-agent[bot]@noreply.local>
 - `scripts/filters/**` -> **Add Filter**
 - `scripts/core/**`, `scripts/ui/**`, `styles/**`, `index.html`, `manifest.json` -> **Orientation**
 
-## References
+## Knowledge
 
 - **Agent Source**: `{PROJECT_ROOT}/.ai/knowledge/**/*`
 - **App Contract**: `README.md`
