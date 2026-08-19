@@ -2046,6 +2046,7 @@
     add("code-minify", "descriptor: version(auto) = single option Auto (latest)", V.desc["cm version single"], "cmVerAuto");
     add("code-minify", "behaviour: legacy csharp-9 + ruby converges to auto at render", true, "cmLegacyConverge");
     add("code-minify", "behaviour: language toggle rebuilds the version select (band not sticky)", true, "cmToggle");
+    add("code-minify", "layout: every option renders on its own row (Language/Version stacked; limit Unit + Max length rows)", true, "optRows");
     add("remove-comment", "descriptor: 21 options (exact order + labels)", { order: V.desc["rc lang order"], labels: V.desc["rc lang labels"] }, "rcLangs");
 
     // ---- defaults (every filter's defaultOptions, byte-exact) ----
@@ -2493,6 +2494,50 @@
         APM.recipe.render();
         return !!ok;
     }
+    function optRows() {
+        // Layout contract (M7): each card option is its own .rec-opt row
+        // (label + control grouped) — never flat inline siblings.
+        function rowsOf(box) {
+            var rows = [];
+            Array.prototype.forEach.call(box.children, function (c) {
+                if (c.className === "rec-opt") rows.push(c);
+            });
+            return { rows: rows, allRows: rows.length === box.children.length };
+        }
+        // code-minify: selects box = Language row + Version row;
+        // checkboxes box = one valid row per checkbox.
+        APM.state.recipe = [{ id: "code-minify", options: { language: "auto", version: "auto" } }];
+        APM.recipe.render();
+        var boxes = document.querySelectorAll(".rec-card .rec-options");
+        var ok = boxes.length === 2;
+        var b1 = rowsOf(boxes[0]);
+        ok = ok && b1.allRows && b1.rows.length === 2;
+        ok = ok && b1.rows[0].querySelector("label").textContent === "Language:" &&
+            b1.rows[0].querySelector("#code-minify-language-0") !== null;
+        ok = ok && b1.rows[1].querySelector("label").textContent === "Version:" &&
+            b1.rows[1].querySelector("#code-minify-version-0") !== null;
+        var b2 = rowsOf(boxes[1]);
+        var valid = 0;
+        Array.prototype.forEach.call(b2.rows, function (r) {
+            if (r.querySelectorAll("label").length === 1 &&
+                r.querySelectorAll("input[type=checkbox]").length === 1) valid++;
+        });
+        ok = ok && b2.allRows && b2.rows.length >= 1 && valid === b2.rows.length;
+        // limit: Unit row + Max length row (custom number in that row).
+        APM.state.recipe = [{ id: "limit", options: {} }];
+        APM.recipe.render();
+        var lbox = document.querySelector(".rec-card .rec-options");
+        var l1 = rowsOf(lbox);
+        ok = ok && l1.allRows && l1.rows.length === 2;
+        ok = ok && l1.rows[0].querySelector("label").textContent === "Unit:" &&
+            l1.rows[0].querySelector("#limit-unit-0") !== null;
+        ok = ok && l1.rows[1].querySelector("label").textContent === "Max length:" &&
+            l1.rows[1].querySelector("#limit-preset-0") !== null &&
+            l1.rows[1].querySelector("input[type=number]") !== null;
+        APM.state.recipe = [{ id: "minify", options: {} }];
+        APM.recipe.render();
+        return !!ok;
+    }
 
     // ---- focusTrap drivers (open/close the modal, drive Tab synthetically) ----
     function ftKey(el, key, shift) {
@@ -2688,6 +2733,7 @@
             case "cmVerAuto": return get("code-minify").selects[1].choices({ language: "auto" });
             case "cmLegacyConverge": return cmLegacyConverge();
             case "cmToggle": return cmToggle();
+            case "optRows": return optRows();
             case "rcLangs": { var s2 = get("remove-comment").selects[0]; return { order: s2.choices.map(function (c) { return c.value; }), labels: s2.choices.map(function (c) { return c.label; }) }; }
             case "filterIds": return F.ids();
             case "defaults": return get(a[0]).defaultOptions();
