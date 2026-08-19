@@ -85,7 +85,6 @@
     function core() {
         var out = [];
         var pending = false;
-        var lastCh = null;      // last char pushed (out items may be spans)
         var lastWordish = false; // adjacency: last unit ended word-ish?
         var lastKind = null;
         var lastWord = "";
@@ -99,7 +98,6 @@
                 }
                 pending = false;
                 out.push(c);
-                lastCh = c;
                 lastWordish = WORD_RE.test(c);
                 if (lastWordish) {
                     curWord += c;
@@ -124,7 +122,6 @@
                 }
                 out.push(span);
                 pending = true;
-                lastCh = last;
                 lastWordish = !!(wordish || WORD_RE.test(last));
                 if (curWord) { lastWord = curWord; curWord = ""; }
                 if (last === '"' || last === "'" || last === "`" || last === "/") {
