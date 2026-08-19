@@ -15,6 +15,75 @@
 
     var SOFT_DEBOUNCE_MS = 5000; // "around 5 seconds" per the requirement
 
+    // The old app (pre-v3) always minified the content pane, so the
+    // faithful recipe for a migrated prefix-only save is the
+    // first-run default: one Minify card.
+    var LEGACY_RECIPE = [{ id: "minify", options: {} }];
+
+    // ---------- Old-app (pre-v3) migration, runs once at boot ----------
+    // The old version stored its prefix presets as `prefixPresets`
+    // ({ name: "prefix text" }, JSON) and the last-used prefix as
+    // `lastPrefix` (a RAW string). The new app reads only
+    // `apm.saves`/`apm.lastState`, so an in-browser upgrade would
+    // lose both. migrateLegacy() carries them across:
+    //   prefixPresets -> apm.saves  (v3 hard saves, [Minify] recipe;
+    //                               an existing save of the same name
+    //                               always wins — never clobbered)
+    //   lastPrefix    -> apm.lastState (only when the soft save is
+    //                               absent or completely empty — an
+    //                               empty auto-persisted state must not
+    //                               hide the user's real old prefix);
+    // Each legacy key is removed ONLY after its data landed safely;
+    // invalid entries keep their key (data is never dropped). A no-op
+    // when the legacy keys are absent — safe to re-run.
+    // Returns { migrated, collisions, resumed }.
+    function migrateLegacy() {
+        var result = { migrated: 0, collisions: 0, resumed: false };
+        var legacy = APM.storage.get("prefixPresets");
+        if (legacy && typeof legacy === "object" && !Array.isArray(legacy)) {
+            var saves = APM.storage.get("apm.saves") || {};
+            var invalid = 0;
+            var names = Object.keys(legacy);
+            for (var i = 0; i < names.length; i++) {
+                var n = String(names[i]).trim().slice(0, 80);
+                var text = legacy[names[i]];
+                if (!n || typeof text !== "string") { invalid++; continue; }
+                if (saves[n]) { result.collisions++; continue; }
+                saves[n] = {
+                    version: 3,
+                    savedAt: new Date().toISOString(),
+                    name: n,
+                    prefix: text,
+                    recipe: LEGACY_RECIPE
+                };
+                result.migrated++;
+            }
+            if (result.migrated > 0 && APM.storage.set("apm.saves", saves)) {
+                APM.saves.refresh();
+                if (invalid === 0) APM.storage.rawRemove("prefixPresets");
+                APM.toast.show("Migrated " + result.migrated + " old prefix preset(s) into Saves" +
+                    (result.collisions ? " (existing save(s) kept for " + result.collisions + " name(s))" : ""));
+            }
+        }
+        var ls = APM.storage.get("apm.lastState");
+        var emptyState = !ls || typeof ls !== "object" || (ls.prefix === "" && ls.input === "");
+        if (emptyState) {
+            var lp = APM.storage.rawGet("lastPrefix");
+            if (typeof lp === "string" && lp !== "" &&
+                APM.storage.set("apm.lastState", {
+                    version: 2,
+                    savedAt: new Date().toISOString(),
+                    prefix: lp,
+                    input: "",
+                    recipe: LEGACY_RECIPE
+                })) {
+                APM.storage.rawRemove("lastPrefix");
+                result.resumed = true;
+            }
+        }
+        return result;
+    }
+
     function refresh() {
         var saves = APM.storage.get("apm.saves") || {};
         var sel = APM.dom.$("save-list");
@@ -338,5 +407,5 @@
         });
     }
 
-    APM.saves = { refresh: refresh, init: init, persistNow: persistNow, persistSoon: persistSoon };
+    APM.saves = { refresh: refresh, init: init, persistNow: persistNow, persistSoon: persistSoon, migrateLegacy: migrateLegacy };
 })(window.APM = window.APM || {});

@@ -2084,6 +2084,11 @@
     add("save model", "import: valid map replaces the saves", true, "importValid");
     add("save model", "import: invalid entries skipped, the good one kept", true, "importSkipped");
     add("save model", "import: bad root (array) leaves saves untouched", true, "importBadRoot");
+    add("save model", "legacy: prefixPresets migrate to v3 saves (collision kept, key removed)", true, "legacyMigrate");
+    add("save model", "legacy: no legacy keys -> no-op, saves untouched", true, "legacyMigrateNone");
+    add("save model", "legacy: lastPrefix seeds apm.lastState when absent", true, "legacyResume");
+    add("save model", "legacy: empty soft save yields to lastPrefix resume", true, "legacyResumeEmpty");
+    add("save model", "legacy: non-empty apm.lastState wins, lastPrefix untouched", true, "legacyResumeKeeps");
 
     // ---- theme (independent auto-saved setting) ----
     add("theme", "theme: 4 themes, '' = Dark default", { "": "Dark", light: "Light", midnight: "Midnight", paper: "Paper" }, "themeNames");
@@ -2285,6 +2290,60 @@
         var before = APM.storage.get("apm.saves");
         importDrive("[1,2]", false);
         return JSON.stringify(APM.storage.get("apm.saves")) === JSON.stringify(before);
+    }
+    // ---- legacy-migration drivers (old app: prefixPresets JSON map +
+    //      raw lastPrefix string; the runner capture/restore owns both
+    //      legacy keys so the tests never touch real user data) ----
+    function legacyMigrate() {
+        // Deterministic start: exactly one existing save "keep" (the
+        // runner's restore puts the user's saves back afterwards).
+        APM.storage.set("apm.saves", { keep: { version: 3, savedAt: "2026-01-01T00:00:00.000Z", name: "keep", prefix: "KEEP", recipe: [{ id: "strip-html", options: {} }] } });
+        try { localStorage.setItem("prefixPresets", JSON.stringify({ keep: "OLD-KEEP", "Java Expert": "You are a Java expert." })); } catch (err) { return false; }
+        var r = APM.saves.migrateLegacy();
+        var s = APM.storage.get("apm.saves") || {};
+        var j = s["Java Expert"];
+        return !!(r.migrated === 1 && r.collisions === 1 &&
+            s.keep && s.keep.prefix === "KEEP" && s.keep.recipe[0].id === "strip-html" &&
+            j && j.version === 3 && j.name === "Java Expert" && j.prefix === "You are a Java expert." &&
+            j.recipe.length === 1 && j.recipe[0].id === "minify" &&
+            APM.storage.rawGet("prefixPresets") === null);
+    }
+    function legacyMigrateNone() {
+        APM.storage.rawRemove("prefixPresets");
+        APM.storage.rawRemove("lastPrefix");
+        var before = JSON.stringify(APM.storage.get("apm.saves"));
+        var r = APM.saves.migrateLegacy();
+        return !!(r.migrated === 0 && r.collisions === 0 &&
+            JSON.stringify(APM.storage.get("apm.saves")) === before);
+    }
+    function legacyResume() {
+        APM.storage.rawRemove("apm.lastState");
+        try { localStorage.setItem("lastPrefix", "You are a helpful expert."); } catch (err) { return false; }
+        var r = APM.saves.migrateLegacy();
+        var ls = APM.storage.get("apm.lastState");
+        return !!(r.resumed === true && ls && ls.version === 2 &&
+            ls.prefix === "You are a helpful expert." && ls.input === "" &&
+            ls.recipe.length === 1 && ls.recipe[0].id === "minify" &&
+            APM.storage.rawGet("lastPrefix") === null);
+    }
+    function legacyResumeEmpty() {
+        // An empty auto-persisted state must not hide the old prefix.
+        APM.storage.set("apm.lastState", { version: 2, savedAt: "2026-01-03T00:00:00.000Z", prefix: "", input: "", recipe: [{ id: "minify", options: {} }] });
+        try { localStorage.setItem("lastPrefix", "Your OLD prefix text."); } catch (err) { return false; }
+        var r = APM.saves.migrateLegacy();
+        var ls = APM.storage.get("apm.lastState");
+        return !!(r.resumed === true && ls && ls.prefix === "Your OLD prefix text." && ls.input === "" &&
+            APM.storage.rawGet("lastPrefix") === null);
+    }
+    function legacyResumeKeeps() {
+        // An existing soft save must win; the stale lastPrefix stays.
+        var mine = { version: 2, savedAt: "2026-01-02T00:00:00.000Z", prefix: "NEW-P", input: "NEW-I", recipe: [{ id: "strip-html", options: {} }] };
+        APM.storage.set("apm.lastState", mine);
+        try { localStorage.setItem("lastPrefix", "OLD-P"); } catch (err) { return false; }
+        var r = APM.saves.migrateLegacy();
+        var ls = APM.storage.get("apm.lastState");
+        return !!(r.resumed === false && ls && ls.prefix === "NEW-P" && ls.input === "NEW-I" &&
+            APM.storage.rawGet("lastPrefix") === "OLD-P");
     }
 
     function themeNames() { return APM.theme.names; }
@@ -2634,6 +2693,11 @@
             case "importValid": return importValid();
             case "importSkipped": return importSkipped();
             case "importBadRoot": return importBadRoot();
+            case "legacyMigrate": return legacyMigrate();
+            case "legacyMigrateNone": return legacyMigrateNone();
+            case "legacyResume": return legacyResume();
+            case "legacyResumeEmpty": return legacyResumeEmpty();
+            case "legacyResumeKeeps": return legacyResumeKeeps();
             case "themeNames": return themeNames();
             case "themeKey": return themeKey();
             case "paletteOrder": return paletteOrder();
@@ -2734,6 +2798,8 @@
             recipe: JSON.parse(JSON.stringify(APM.state.recipe)),
             saves: APM.storage.get("apm.saves"),
             lastState: APM.storage.get("apm.lastState"),
+            legacyPresets: APM.storage.rawGet("prefixPresets"),
+            legacyLast: APM.storage.rawGet("lastPrefix"),
             theme: APM.theme.current(),
             leftCollapsed: APM.leftpane.isCollapsed(),
             splits: APM.storage.get("apm.ui.splits"),
@@ -2755,6 +2821,10 @@
             else APM.storage.set("apm.saves", cap.saves);
             if (cap.lastState === null) { try { localStorage.removeItem("apm.lastState"); } catch (err) { /* blocked */ } }
             else APM.storage.set("apm.lastState", cap.lastState);
+            if (cap.legacyPresets === null) { try { localStorage.removeItem("prefixPresets"); } catch (err) { /* blocked */ } }
+            else { try { localStorage.setItem("prefixPresets", cap.legacyPresets); } catch (err) { /* blocked */ } }
+            if (cap.legacyLast === null) { try { localStorage.removeItem("lastPrefix"); } catch (err) { /* blocked */ } }
+            else { try { localStorage.setItem("lastPrefix", cap.legacyLast); } catch (err) { /* blocked */ } }
             APM.saves.refresh();
             APM.saves.persistNow();
             APM.theme.apply(cap.theme);

@@ -17,6 +17,11 @@
         APM.splits.init();   // resizable columns (apm.ui.splits / apm.ui.peekWidth)
         APM.io.init();
 
+        // One-time migration of old-version saves (prefixPresets /
+        // lastPrefix) into apm.saves / apm.lastState — must run BEFORE
+        // the restore below so a migrated lastPrefix can resume.
+        APM.saves.migrateLegacy();
+
         // Restore the last working state, or start with the original app's
         // default behaviour (recipe = [Minify]).
         var last = APM.storage.get("apm.lastState");

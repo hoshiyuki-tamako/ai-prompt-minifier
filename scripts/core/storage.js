@@ -23,5 +23,25 @@
         }
     }
 
-    APM.storage = { get: get, set: set };
+    // Raw-string access for legacy (pre-v3) keys that predate the JSON
+    // contract — the old app stored `lastPrefix` as a plain string,
+    // so `get()` would throw JSON.parse on it.
+    function rawGet(key) {
+        try {
+            return localStorage.getItem(key);
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function rawRemove(key) {
+        try {
+            localStorage.removeItem(key);
+            return true;
+        } catch (err) {
+            return false;
+        }
+    }
+
+    APM.storage = { get: get, set: set, rawGet: rawGet, rawRemove: rawRemove };
 })(window.APM = window.APM || {});
