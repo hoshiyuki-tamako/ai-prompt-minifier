@@ -50,9 +50,11 @@ There are two deliberately separate save mechanisms, both in your browser's `loc
 
 **When you open the app:** if a soft save exists it always wins — you resume exactly where you left off (prefix, input, recipe, options). Only a first-time visitor (no saved state at all) starts with **Minify** in the recipe and empty panes — the original app's default behaviour.
 
+**Upgraded from the old version?** Your old prefix saves come with you, automatically: on the first open of the new version, every old **prefix preset** (the `prefixPresets` list) is carried across into the **Save/Load** dropdown as a normal save (recipe = **Minify**, which is what the old app always applied), and your **last-used prefix** resumes in the Prefix box (unless you already have a non-empty working state here). Existing saves with the same name are always kept — nothing of yours is clobbered — and the old storage keys are removed only after their data is safely stored. The old presets' JSON shape (`{"Name": "prefix text"}`) is also accepted by the importer below.
+
 ### Export / import saves (JSON)
 
-The **Export/Import** button opens a popup with your whole save list as minified JSON: click the text (or press **Copy**) to copy it, or **Download (.json)** to save it as `ai-prompt-minifier-saves.json`. To import, click **Import…**, paste a JSON map of saves, then **Confirm import** — you are always asked first, because importing **replaces** the saved profiles in this browser (invalid entries are skipped and reported in the toast). The import row's **Close** button simply dismisses the popup (the pasted draft is discarded; opening the popup again shows the fresh save list). Importing never touches your current prefix, input, recipe or theme.
+The **Export/Import** button opens a popup with your whole save list as minified JSON: click the text (or press **Copy**) to copy it, or **Download (.json)** to save it as `ai-prompt-minifier-saves.json`. To import, click **Import…**, paste a JSON map of saves, then **Confirm import** — you are always asked first, because importing **replaces** the saved profiles in this browser (invalid entries are skipped and reported in the toast). Maps from the old version — `{"Preset name": "prefix text"}` — are understood too: each entry becomes a save with the **Minify** recipe. The import row's **Close** button simply dismisses the popup (the pasted draft is discarded; opening the popup again shows the fresh save list). Importing never touches your current prefix, input, recipe or theme.
 
 ### Collapse the left columns
 
@@ -114,7 +116,7 @@ The complete app is **30 files**:
 | `scripts/ui/splits.js`                  | Resizable left columns + hover-peek width + I/O pane heights (`apm.ui.splits` / `apm.ui.peekWidth` / `apm.ui.panes`) |
 | `scripts/ui/io.js`                      | Live recompute (recipe on input; raw prefix prepended after), char + token counters, status hand-off, confirmed clear, copy |
 | `scripts/ui/saves.js`                   | Top-bar Save / Load / Delete + debounced auto-resume (soft save) + the export/import JSON modal |
-| `scripts/tests/unit-tests.js`           | Built-in unit-test runner — `APM.test.run()` in the browser console (419 pinned cases; no external tools; zero impact until you run it) |
+| `scripts/tests/unit-tests.js`           | Built-in unit-test runner — `APM.test.run()` in the browser console (425 pinned cases; no external tools; zero impact until you run it) |
 
 Documentation: this `README.md` (user-facing) + the docs live in the code (minimal JSDoc directly above the functions they describe) + [`.ai/skills/`](.ai/skills/) (project orientation, unit testing, the verification battery, and the add-a-filter workflow — written for AI and human readers alike)
 
@@ -126,5 +128,5 @@ The JavaScript is a set of small plain `<script>` files — **not ES modules** �
 
 - Pure HTML/CSS/JS — no build step, no external libraries, no network requests.
 - **Installable (PWA)**: `manifest.json` + icons let you install it as an app on desktop and mobile. There is deliberately **no service worker** — the app is already fully offline and works straight from `file://`.
-- All saved data lives in `localStorage` under the `apm.*` keys (`apm.theme`, `apm.saves`, `apm.lastState`, `apm.ui.leftCollapsed`, `apm.ui.splits`, `apm.ui.peekWidth`, `apm.ui.panes`); clearing site data removes it.
+- All saved data lives in `localStorage` under the `apm.*` keys (`apm.theme`, `apm.saves`, `apm.lastState`, `apm.ui.leftCollapsed`, `apm.ui.splits`, `apm.ui.peekWidth`, `apm.ui.panes`); clearing site data removes it. Legacy keys from the old version (`prefixPresets`, `lastPrefix`) are one-time migrated into `apm.saves` / `apm.lastState` on first open of the new version, then removed.
 - Keyboard-friendly: every action is reachable without a mouse (Tab to a filter, Enter/Space to add; buttons and selects work as expected), with a visible focus ring.
