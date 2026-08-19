@@ -46,7 +46,7 @@ Co-authored-by: AI Agent <ai-agent[bot]@noreply.local>
 
 ## Knowledge
 
-- **Agent Source**: `{PROJECT_ROOT}/.ai/knowledge/**/*`
+- **Knowledge**: `{PROJECT_ROOT}/.ai/knowledge/**/*`
 - **App Contract**: `README.md`
 
 ## Features
