@@ -116,7 +116,7 @@ The complete app is **30 files**:
 | `scripts/ui/splits.js`                  | Resizable left columns + hover-peek width + I/O pane heights (`apm.ui.splits` / `apm.ui.peekWidth` / `apm.ui.panes`) |
 | `scripts/ui/io.js`                      | Live recompute (recipe on input; raw prefix prepended after), char + token counters, status hand-off, confirmed clear, copy |
 | `scripts/ui/saves.js`                   | Top-bar Save / Load / Delete + debounced auto-resume (soft save) + the export/import JSON modal |
-| `scripts/tests/unit-tests.js`           | Built-in unit-test runner — `APM.test.run()` in the browser console (426 pinned cases; no external tools; zero impact until you run it) |
+| `scripts/tests/unit-tests.js`           | Built-in unit-test runner — `APM.test.run()` in the browser console (427 pinned cases; no external tools; zero impact until you run it) |
 
 Documentation: this `README.md` (user-facing) + the docs live in the code (minimal JSDoc directly above the functions they describe) + [`.ai/skills/`](.ai/skills/) (project orientation, unit testing, the verification battery, and the add-a-filter workflow — written for AI and human readers alike)
 

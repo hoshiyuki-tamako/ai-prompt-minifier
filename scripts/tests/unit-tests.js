@@ -2047,6 +2047,7 @@
     add("code-minify", "behaviour: legacy csharp-9 + ruby converges to auto at render", true, "cmLegacyConverge");
     add("code-minify", "behaviour: language toggle rebuilds the version select (band not sticky)", true, "cmToggle");
     add("code-minify", "layout: every option renders on its own row (Language/Version stacked; limit Unit + Max length rows)", true, "optRows");
+    add("code-minify", "layout: hidden options hide their WHOLE row (auto/json/markdown visibility)", { auto: [1, 0, 0, 0, 0, 0], json: [1, 1, 1, 1, 1, 0], markdown: [1, 0, 0, 0, 0, 1] }, "optVisRows");
     add("remove-comment", "descriptor: 21 options (exact order + labels)", { order: V.desc["rc lang order"], labels: V.desc["rc lang labels"] }, "rcLangs");
 
     // ---- defaults (every filter's defaultOptions, byte-exact) ----
@@ -2538,6 +2539,36 @@
         APM.recipe.render();
         return !!ok;
     }
+    function optVisRows() {
+        // Layout contract (M8): an option whose `visible` predicate is
+        // false hides its WHOLE .rec-opt row (zero space) — and the
+        // rows flip live when the language changes. Row order pinned
+        // from the code-minify descriptor: comments (always) | null,
+        // empty {}, empty [], empty "" (json) | style (markdown).
+        APM.state.recipe = [{ id: "code-minify", options: { language: "auto", version: "auto" } }];
+        APM.recipe.render();
+        var lang = APM.dom.$("code-minify-language-0");
+        function setLang(v) {
+            lang.value = v;
+            lang.dispatchEvent(new Event("change"));
+        }
+        function rowVis() {
+            var box = document.querySelectorAll(".rec-card .rec-options")[1];
+            var out = [];
+            Array.prototype.forEach.call(box.children, function (r) {
+                out.push(r.hidden ? 0 : 1);
+            });
+            return out;
+        }
+        var snap = { auto: rowVis() };
+        setLang("json");
+        snap.json = rowVis();
+        setLang("markdown");
+        snap.markdown = rowVis();
+        APM.state.recipe = [{ id: "minify", options: {} }];
+        APM.recipe.render();
+        return snap;
+    }
 
     // ---- focusTrap drivers (open/close the modal, drive Tab synthetically) ----
     function ftKey(el, key, shift) {
@@ -2734,6 +2765,7 @@
             case "cmLegacyConverge": return cmLegacyConverge();
             case "cmToggle": return cmToggle();
             case "optRows": return optRows();
+            case "optVisRows": return optVisRows();
             case "rcLangs": { var s2 = get("remove-comment").selects[0]; return { order: s2.choices.map(function (c) { return c.value; }), labels: s2.choices.map(function (c) { return c.label; }) }; }
             case "filterIds": return F.ids();
             case "defaults": return get(a[0]).defaultOptions();
