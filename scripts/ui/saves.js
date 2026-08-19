@@ -72,9 +72,40 @@
         return JSON.stringify(APM.storage.get("apm.saves") || {});
     }
 
+    // ---------- Modal focus trap + focus return (a11y) ----------
+    // While the modal is open, Tab/Shift+Tab cycle its VISIBLE
+    // focusables (the set is recomputed on every press — the import
+    // row swaps it). On close, focus returns to the element that
+    // opened the modal (fallback: the Export/Import button). The
+    // native prompt()/confirm() dialogs are OS-level and untouched.
+    var modalTrigger = null;
+    var tabTrap = null;
+
+    function trapKey(e) {
+        if (e.key !== "Tab") return;
+        var modal = APM.dom.$("save-modal");
+        var focusables = Array.prototype.filter.call(
+            modal.querySelectorAll("button:not([disabled]), textarea"),
+            function (el) { return !el.closest("[hidden]"); }
+        );
+        if (!focusables.length) return;
+        var idx = focusables.indexOf(document.activeElement);
+        var next;
+        if (e.shiftKey) {
+            next = (idx <= 0) ? focusables[focusables.length - 1] : focusables[idx - 1];
+        } else {
+            next = (idx === -1 || idx === focusables.length - 1) ? focusables[0] : focusables[idx + 1];
+        }
+        e.preventDefault();
+        next.focus();
+    }
+
     function openModal() {
         var $ = APM.dom.$;
         var ta = $("saves-json");
+        modalTrigger = document.activeElement; // capture BEFORE the focus moves
+        tabTrap = trapKey;
+        $("save-modal").addEventListener("keydown", tabTrap);
         ta.readOnly = true;
         ta.value = savesJson();
         $("save-modal-hint").textContent = "Click the text to copy it.";
@@ -84,7 +115,19 @@
     }
 
     function closeModal() {
-        APM.dom.$("save-modal").hidden = true;
+        var $ = APM.dom.$;
+        if (tabTrap) {
+            $("save-modal").removeEventListener("keydown", tabTrap);
+            tabTrap = null;
+        }
+        $("save-modal").hidden = true;
+        var back = modalTrigger;
+        modalTrigger = null;
+        if (back && back !== document.body && document.contains(back) && typeof back.focus === "function") {
+            back.focus();
+        } else {
+            $("saves-io-btn").focus();
+        }
     }
 
     function startImport() {
@@ -94,15 +137,6 @@
         $("save-modal-hint").textContent = "Paste your JSON here, then confirm.";
         $("import-confirm-row").hidden = false;
         ta.focus();
-    }
-
-    function cancelImport() {
-        var $ = APM.dom.$;
-        var ta = $("saves-json");
-        ta.readOnly = true;
-        ta.value = savesJson(); // discard whatever was pasted
-        $("save-modal-hint").textContent = "Click the text to copy it.";
-        $("import-confirm-row").hidden = true;
     }
 
     // Validate an imported map: { name: { prefix?: string,
@@ -253,7 +287,10 @@
         $("saves-io-btn").addEventListener("click", function () { openModal(); });
         $("save-modal-close").addEventListener("click", closeModal);
         $("saves-import-btn").addEventListener("click", startImport);
-        $("saves-import-cancel").addEventListener("click", cancelImport);
+        // M11: the import row's second button is the CLOSE button — it
+        // dismisses the dialog (a pasted draft is discarded; the modal
+        // re-seeds fresh byte-exact JSON on the next open).
+        $("saves-import-cancel").addEventListener("click", closeModal);
         $("saves-import-confirm").addEventListener("click", confirmImport);
 
         // Click the (export-mode) textarea = auto-copy the whole map.

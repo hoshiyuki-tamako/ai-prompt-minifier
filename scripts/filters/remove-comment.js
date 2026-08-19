@@ -11,9 +11,11 @@
    - all non-comment bytes are preserved exactly (no trimming, no other
      changes) — pair with Minify / Remove extra space to tidy spaces.
 
-   Supports 17 languages (C#, C/C++, CSS, Go, HTML/XML, Java,
-   JS/TypeScript, Kotlin, Markdown, PHP, PowerShell, Python, Ruby,
-   Rust, sh/bash, SQL, Swift) plus the two Auto modes.
+   Supports 19 languages (C, C#, C++, CSS, Go, HTML/XML, Java,
+   JS/TypeScript, JSON, Kotlin, Markdown, PHP, PowerShell, Python,
+   Ruby, Rust, sh/bash, SQL, Swift) plus the two Auto modes.
+   M13: the old C/C++ row is split into C + C++; JSON strips line +
+   block comments (JSONC); the legacy c-cpp value still works (alias).
 
    Documented limitations:
    - JS/TS template literals are treated as raw until the closing
@@ -52,18 +54,21 @@
 (function (APM) {
     "use strict";
 
-    // Dropdown choices — ALREADY sorted ASC by display name (17 languages
-    // plus the two Auto modes).
+    // Dropdown choices — 21 options: the two Auto modes plus 19
+    // languages sorted by value (M13: the old C/C++ row is split into
+    // C + C++; JSON = JSONC comment strip).
     var LANGUAGES = [
         { value: "auto", label: "Auto" },
         { value: "auto-multi", label: "Auto-Multi-Language" },
+        { value: "c", label: "C" },
         { value: "c-sh", label: "C#" },
-        { value: "c-cpp", label: "C/C++" },
+        { value: "cpp", label: "C++" },
         { value: "css", label: "CSS" },
         { value: "go", label: "Go" },
         { value: "html-xml", label: "HTML/XML" },
         { value: "java", label: "Java" },
         { value: "js-ts", label: "JS/TypeScript" },
+        { value: "json", label: "JSON" },
         { value: "kotlin", label: "Kotlin" },
         { value: "markdown", label: "Markdown" },
         { value: "php", label: "PHP" },
@@ -94,7 +99,7 @@
     //     line, on open AND close (Ruby =begin / =end)
     var GRAMMAR = {
         "c-sh":       { lineStarts: ["//"],   blockStart: "/*",   blockEnd: "*/",    nested: false, backtick: false, triple: false },
-        "c-cpp":      { lineStarts: ["//"],   blockStart: "/*",   blockEnd: "*/",    nested: false, backtick: false, triple: false },
+        "c":          { lineStarts: ["//"],   blockStart: "/*",   blockEnd: "*/",    nested: false, backtick: false, triple: false },
         "java":       { lineStarts: ["//"],   blockStart: "/*",   blockEnd: "*/",    nested: false, backtick: false, triple: false },
         "js-ts":      { lineStarts: ["//"],   blockStart: "/*",   blockEnd: "*/",    nested: false, backtick: true,  triple: false },
         "rust":       { lineStarts: ["//"],   blockStart: "/*",   blockEnd: "*/",    nested: true,  backtick: false, triple: false },
@@ -111,6 +116,12 @@
         "powershell": { lineStarts: ["#"],    blockStart: "<#",   blockEnd: "#>",    nested: false, backtick: false, triple: false },
         "ruby":       { lineStarts: ["#"],    blockStart: "=begin", blockEnd: "=end", nested: false, backtick: false, triple: false, lineScoped: true }
     };
+    // M13: C/C++ split — cpp and the legacy c-cpp value (old saves)
+    // alias the single C-family row; JSON = JSONC comment strip
+    // (// and /* */ removed, "-strings byte-exact).
+    GRAMMAR["cpp"] = GRAMMAR["c"];
+    GRAMMAR["c-cpp"] = GRAMMAR["c"];
+    GRAMMAR["json"] = { lineStarts: ["//"], blockStart: "/*", blockEnd: "*/", nested: false, backtick: false, triple: false };
 
     // Auto-language markers: distinctive source-level syntax per
     // language (plain, non-global regexes so .test() is stateless).
@@ -544,7 +555,8 @@
     }
     APM.filters.register("remove-comment", {
         name: "Remove comments",
-        desc: "Removes line and block comments across 17 languages. Auto (default) guesses the language and leaves the text alone when unsure; Auto-Multi-Language works block-by-block on mixed pastes; pick a language for exact control. Strings stay exact (// and /* */ for C-family/JS/Go/Swift/Kotlin, # for sh/Ruby/PHP, -- for SQL, # and <# #> for PowerShell, <!-- --> for Markdown/HTML/XML).",
+        desc: "Removes comments — Auto (default) guesses the language, or pick one for exact control.",
+        keywords: "strip comments auto multi-language c c# c++ css go html xml java javascript typescript json jsonc kotlin markdown php powershell python ruby rust sh bash sql swift",
         run: function (text, opts) {
             var language = (opts && typeof opts.language === "string") ? opts.language : DEFAULT_LANGUAGE;
             if (language === "auto-multi") {

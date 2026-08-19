@@ -1,8 +1,23 @@
 /* ui/palette.js — column 1: searchable filter palette.
    Add a filter to the recipe by drag, double-click, or keyboard
-   (focus the item, then Enter/Space). */
+   (focus the item, then Enter/Space).
+   M13 (round-7 item 3): items render SORTED by filter title name
+   (codepoint ASC, locale-independent); the registry/recipe order is
+   untouched.
+   M16 (round-10 item 1): search matches name + desc + the optional
+   search-only `keywords` field (short descs stay searchable). */
 (function (APM) {
     "use strict";
+
+    function sortedIds() {
+        return APM.filters.ids().slice().sort(function (a, b) {
+            var na = APM.filters.get(a).name;
+            var nb = APM.filters.get(b).name;
+            if (na < nb) return -1;
+            if (na > nb) return 1;
+            return 0;
+        });
+    }
 
     function render(query) {
         var $ = APM.dom.$;
@@ -12,10 +27,14 @@
         var q = (query || "").trim().toLowerCase();
         var visible = 0;
 
-        APM.filters.ids().forEach(function (id) {
+        sortedIds().forEach(function (id) {
             var def = APM.filters.get(id);
-            if (q && def.name.toLowerCase().indexOf(q) === -1 &&
-                def.desc.toLowerCase().indexOf(q) === -1) {
+            // M16: haystack = name + desc + keywords. `keywords` is a
+            // search-only field (never displayed) that carries the former
+            // descriptive detail, so the short user-facing descs stay
+            // fully searchable ("ruby", "c#", "json", ...).
+            var hay = (def.name + " " + def.desc + " " + (def.keywords || "")).toLowerCase();
+            if (q && hay.indexOf(q) === -1) {
                 return;
             }
             visible++;

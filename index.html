@@ -41,11 +41,11 @@
                     title="Collapse Filters + Recipe (hover a column to peek the recipe)">&#171;</button>
             </span>
             <span class="banner-group">
-                <button id="save-btn" type="button" title="Save prefix + recipe in this browser">Save</button>
+                <button id="save-btn" type="button" class="btn-primary" title="Save prefix + recipe in this browser">Save</button>
                 <select id="save-list" class="field save-select" aria-label="Saved states">
                     <option value="">-- Load --</option>
                 </select>
-                <button id="load-btn" type="button" title="Load the selected state — or reset prefix + recipe when -- Load -- is selected (input + theme kept)">Load</button>
+                <button id="load-btn" type="button" class="btn-primary" title="Load the selected state — or reset prefix + recipe when -- Load -- is selected (input + theme kept)">Load</button>
                 <button id="delete-save-btn" type="button" class="btn-ghost danger"
                     title="Delete the selected state">Delete</button>
             </span>
@@ -88,6 +88,11 @@
             </div>
         </section>
 
+        <!-- T15.6: resizable boundary (expanded view only; hidden in compact) -->
+        <div class="split-gutter" id="split-filters" role="separator"
+            aria-orientation="vertical" tabindex="0"
+            aria-label="Resize filters and recipe columns"></div>
+
         <!-- Column 2: the recipe (filters currently applied, in order) -->
         <section id="recipe" aria-label="Recipe">
             <div class="left-rail" aria-hidden="true">
@@ -108,7 +113,14 @@
                 </div>
                 <ul id="rec-list" class="list-area" aria-label="Applied filters"></ul>
             </div>
+            <!-- T15.6: hover-peek resize handle (visible on peek only) -->
+            <div id="recipe-peek-handle" aria-hidden="true"></div>
         </section>
+
+        <!-- T15.6: resizable boundary (expanded view only; hidden in compact) -->
+        <div class="split-gutter" id="split-recipe" role="separator"
+            aria-orientation="vertical" tabindex="0"
+            aria-label="Resize recipe column and input/output area"></div>
 
         <!-- Column 3: prefix above the input, output on the bottom -->
         <section id="io" aria-label="Prefix, input and output">
@@ -116,7 +128,9 @@
                 <div class="pane-title">
                     <span class="pane-name">System Prompt / Prefix</span>
                     <span class="pane-controls">
+                        <span id="prefix-pos" class="io-info"></span>
                         <span id="prefix-count" class="io-info">0 chars</span>
+                        <span id="prefix-tok" class="io-info" title="Heuristic token estimate (built-in tokenizer) — not an exact count">≈ 0 tok</span>
                         <button id="clear-prefix" type="button" class="btn-ghost" title="Clear the prefix">Clear</button>
                     </span>
                 </div>
@@ -125,11 +139,17 @@
                         placeholder="Optional — placed above your input in the output..."></textarea>
                 </div>
             </section>
+            <!-- T16.3: resizable boundary (always visible — compact rails don't touch #io) -->
+            <div class="pane-gutter" id="pane-split-prefix" role="separator"
+                aria-orientation="horizontal" tabindex="0"
+                aria-label="Resize prefix and input panes"></div>
             <section id="input-pane" class="io-pane" aria-label="Input">
                 <div class="pane-title">
                     <span class="pane-name">Input</span>
                     <span class="pane-controls">
+                        <span id="input-pos" class="io-info"></span>
                         <span id="input-count" class="io-info">0 chars</span>
+                        <span id="input-tok" class="io-info" title="Heuristic token estimate (built-in tokenizer) — not an exact count">≈ 0 tok</span>
                         <button id="clear-input" type="button" class="btn-ghost" title="Clear the input">Clear</button>
                     </span>
                 </div>
@@ -138,11 +158,16 @@
                         placeholder="Paste your prompt: system instructions, code, JSON, examples..."></textarea>
                 </div>
             </section>
+            <div class="pane-gutter" id="pane-split-input" role="separator"
+                aria-orientation="horizontal" tabindex="0"
+                aria-label="Resize input and output panes"></div>
             <section id="output-pane" class="io-pane" aria-label="Output">
                 <div class="pane-title">
                     <span class="pane-name">Output</span>
                     <span class="pane-controls">
+                        <span id="output-pos" class="io-info"></span>
                         <span id="output-count" class="io-info">0 chars</span>
+                        <span id="output-tok" class="io-info" title="Heuristic token estimate (built-in tokenizer) — not an exact count">≈ 0 tok</span>
                         <span id="truncated-badge" class="badge" hidden>truncated</span>
                         <button id="copy-output" type="button" class="btn-ghost"
                             title="Copy output to clipboard">Copy</button>
@@ -167,12 +192,12 @@
                 <button id="saves-copy-btn" type="button" class="btn-ghost">Copy</button>
                 <button id="saves-download-btn" type="button" class="btn-ghost">Download (.json)</button>
                 <button id="saves-import-btn" type="button" class="btn-ghost">Import&hellip;</button>
-                <button id="save-modal-close" type="button">Close</button>
+                <button id="save-modal-close" type="button" class="btn-primary">Close</button>
             </div>
             <div class="modal-row" id="import-confirm-row" hidden>
                 <span class="modal-hint">Paste your JSON here, then confirm.</span>
-                <button id="saves-import-confirm" type="button">Confirm import</button>
-                <button id="saves-import-cancel" type="button" class="btn-ghost">Cancel</button>
+                <button id="saves-import-confirm" type="button" class="btn-primary">Confirm import</button>
+                <button id="saves-import-cancel" type="button" class="btn-ghost">Close</button>
             </div>
         </div>
     </div>
@@ -182,6 +207,7 @@
     <script src="scripts/core/storage.js"></script>
     <script src="scripts/core/state.js"></script>
     <script src="scripts/core/toast.js"></script>
+    <script src="scripts/core/tokenize.js"></script>
     <script src="scripts/filters/registry.js"></script>
     <script src="scripts/filters/minify.js"></script>
     <script src="scripts/filters/output-length-limit.js"></script>
@@ -189,14 +215,21 @@
     <script src="scripts/filters/remove-comment.js"></script>
     <script src="scripts/filters/remove-extra-space.js"></script>
     <script src="scripts/filters/regex-replace.js"></script>
+    <script src="scripts/filters/code-minify.js"></script>
+    <script src="scripts/filters/dedup.js"></script>
     <script src="scripts/ui/theme.js"></script>
     <script src="scripts/ui/palette.js"></script>
     <script src="scripts/ui/recipe.js"></script>
     <script src="scripts/ui/dnd.js"></script>
     <script src="scripts/ui/leftpane.js"></script>
+    <script src="scripts/ui/splits.js"></script>
     <script src="scripts/ui/io.js"></script>
     <script src="scripts/ui/saves.js"></script>
     <script src="scripts/main.js"></script>
+    <!-- Built-in unit-test runner: APM.test.run() / run(filter) / list()
+         in the browser console. Data + functions at load only; zero impact
+         until the user actually runs a command. -->
+    <script src="scripts/tests/unit-tests.js"></script>
 </body>
 
 </html>

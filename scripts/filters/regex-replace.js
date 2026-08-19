@@ -22,7 +22,8 @@
     }
     APM.filters.register("regex-replace", {
         name: "Regex find & replace",
-        desc: "Replaces every match of a JavaScript regular expression with a replacement string ($1 back-references work, empty replacement deletes). One pass — replaced text is never re-scanned.",
+        desc: "Replaces every regex match with a replacement string.",
+        keywords: "regex regular expression pattern substitution replace",
         status: true,
         inputs: [
             { key: "pattern", label: "Pattern:", placeholder: "e.g. \\s+" },

@@ -59,7 +59,8 @@
     }
     APM.filters.register("minify", {
         name: "Minify",
-        desc: "Intelligent whitespace minify — quoted strings stay exact, required spaces between identifiers are kept.",
+        desc: "Minifies whitespace while keeping quoted strings exact.",
+        keywords: "whitespace compact",
         run: function (text) {
             return minify(text);
         },

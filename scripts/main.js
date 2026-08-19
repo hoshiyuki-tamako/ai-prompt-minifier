@@ -14,6 +14,7 @@
         APM.recipe.init();
         APM.dnd.init();
         APM.leftpane.init(); // collapse state (apm.ui.leftCollapsed); class-only, order-safe
+        APM.splits.init();   // resizable columns (apm.ui.splits / apm.ui.peekWidth)
         APM.io.init();
 
         // Restore the last working state, or start with the original app's

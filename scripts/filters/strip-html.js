@@ -45,7 +45,8 @@
     }
     APM.filters.register("strip-html", {
         name: "Strip HTML",
-        desc: "Removes HTML comments and tags, decodes common entities (&amp; &lt; &gt; &quot; &#39; &nbsp;).",
+        desc: "Removes HTML comments and tags, decodes common entities.",
+        keywords: "html tags entities decode",
         run: function (text) {
             return stripHtml(text);
         },
