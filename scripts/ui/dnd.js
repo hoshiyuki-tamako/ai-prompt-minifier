@@ -8,8 +8,6 @@
     var dragState = null; // { from: "palette" | "recipe", id, index }
 
     function setState(s) { dragState = s; }
-    function getState() { return dragState; }
-    function clearState() { dragState = null; }
 
     function dropIndexAt(e) {
         var cards = APM.dom.$("rec-list").querySelectorAll(".rec-card");
@@ -84,8 +82,6 @@
 
     APM.dnd = {
         setState: setState,
-        getState: getState,
-        clearState: clearState,
         clearIndicator: clearIndicator,
         init: function () { initRecipeDnd(); initDragGuards(); }
     };
