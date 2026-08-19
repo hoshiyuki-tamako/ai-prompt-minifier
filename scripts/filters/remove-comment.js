@@ -14,8 +14,8 @@
    Supports 19 languages (C, C#, C++, CSS, Go, HTML/XML, Java,
    JS/TypeScript, JSON, Kotlin, Markdown, PHP, PowerShell, Python,
    Ruby, Rust, sh/bash, SQL, Swift) plus the two Auto modes.
-   M13: the old C/C++ row is split into C + C++; JSON strips line +
-   block comments (JSONC); the legacy c-cpp value still works (alias).
+   C and C++ are split rows; JSON strips line + block comments
+   (JSONC); the legacy c-cpp value still works (alias).
 
    Documented limitations:
    - JS/TS template literals are treated as raw until the closing
@@ -55,8 +55,8 @@
     "use strict";
 
     // Dropdown choices — 21 options: the two Auto modes plus 19
-    // languages sorted by value (M13: the old C/C++ row is split into
-    // C + C++; JSON = JSONC comment strip).
+    // languages sorted by value (C and C++ are split rows;
+    // JSON = JSONC comment strip).
     var LANGUAGES = [
         { value: "auto", label: "Auto" },
         { value: "auto-multi", label: "Auto-Multi-Language" },
@@ -116,7 +116,7 @@
         "powershell": { lineStarts: ["#"],    blockStart: "<#",   blockEnd: "#>",    nested: false, backtick: false, triple: false },
         "ruby":       { lineStarts: ["#"],    blockStart: "=begin", blockEnd: "=end", nested: false, backtick: false, triple: false, lineScoped: true }
     };
-    // M13: C/C++ split — cpp and the legacy c-cpp value (old saves)
+    // C/C++ split — cpp and the legacy c-cpp value (old saves)
     // alias the single C-family row; JSON = JSONC comment strip
     // (// and /* */ removed, "-strings byte-exact).
     GRAMMAR["cpp"] = GRAMMAR["c"];
@@ -283,7 +283,7 @@
         return bestScore > 0 ? best : null;
     }
 
-    // Auto-Multi-Language (M9): strip comments only inside detected
+    // Auto-Multi-Language: strip comments only inside detected
     // code blocks; everything else passes through byte-exact.
     //   - fenced blocks: an opening "```lang" fence maps the tag to a
     //     grammar (unknown tag -> block left untouched); the fence
@@ -345,7 +345,7 @@
         if (/<\/?[A-Za-z][\w-]*/.test(t)) return true;
         if (/(?<!:)\/\/|\/\*/.test(t)) return true;
         if (/[\"']/.test(t) && t.indexOf("=") !== -1) return true;
-        // M10 additions (Go / sh / PHP+PS vars / SQL keywords / Kotlin),
+        // (Go / sh / PHP+PS vars / SQL keywords / Kotlin) —
         // each an O(line) check with the same early-exit style.
         if (/:=/.test(t)) return true;
         if (/^#!\//.test(t)) return true;

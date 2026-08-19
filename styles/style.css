@@ -306,7 +306,7 @@ textarea:focus-visible,
     flex: 1;
     min-height: 0;
     display: flex;
-    /* T15.6: column-width defaults. scripts/ui/splits.js overrides
+    /* Column-width defaults. scripts/ui/splits.js overrides
        --col-f/--col-r inline (persisted apm.ui.splits) and --peek-w
        (persisted apm.ui.peekWidth); the narrow-window media queries
        re-declare the defaults here for their breakpoints. */
@@ -341,7 +341,7 @@ textarea:focus-visible,
     background: var(--bg);
 }
 
-/* T15.6: resizable left columns (expanded view only). The gutters are
+/* Resizable left columns (expanded view only). The gutters are
    5px separators; scripts/ui/splits.js drives them (pointer drag,
    ArrowLeft/Right = ±10px, double-click resets both columns). The
    compact (rail) view hides them — the rails are never resizable.
@@ -361,7 +361,7 @@ textarea:focus-visible,
     background: var(--accent);
 }
 
-/* T16.3: vertical I/O pane separators (inside #io; ALWAYS visible —
+/* Vertical I/O pane separators (inside #io; ALWAYS visible —
    the compact rail view doesn't touch #io). Drag, ArrowUp/Down = ±10px,
    double-click resets both panes — scripts/ui/splits.js. */
 .pane-gutter {
@@ -531,6 +531,12 @@ textarea:focus-visible,
     font-size: 12px;
     color: var(--muted);
     white-space: nowrap;
+}
+
+/* The pos readout is left-anchored: it grows to the right, so the
+   right-side counters/buttons never shift as it changes. */
+.pane-title .io-pos {
+    margin-right: auto;
 }
 
 .badge {
@@ -756,7 +762,7 @@ textarea:focus-visible,
 }
 
 /* ---------------- Column 3: input / output ---------------- */
-/* T16.3: the three panes are vertically resizable — .pane-gutter
+/* The three panes are vertically resizable — .pane-gutter
    separators between them; #io carries --pane-p (prefix) and --pane-i
    (input) and the output pane absorbs the remainder. The CSS defaults
    (18%/41%) keep the prefix visibly compact, as before. */

@@ -241,7 +241,7 @@
         $("load-btn").addEventListener("click", function () {
             var name = $("save-list").value;
             if (!name) {
-                // M10: empty "-- Load --" selection = reset prefix +
+                // Empty "-- Load --" selection = reset prefix +
                 // recipe to the new-user defaults (empty prefix,
                 // [Minify]) — the input box AND the theme are left
                 // untouched (the theme is an independent auto-saved
@@ -287,7 +287,7 @@
         $("saves-io-btn").addEventListener("click", function () { openModal(); });
         $("save-modal-close").addEventListener("click", closeModal);
         $("saves-import-btn").addEventListener("click", startImport);
-        // M11: the import row's second button is the CLOSE button — it
+        // The import row's second button is the CLOSE button — it
         // dismisses the dialog (a pasted draft is discarded; the modal
         // re-seeds fresh byte-exact JSON on the next open).
         $("saves-import-cancel").addEventListener("click", closeModal);

@@ -1,4 +1,4 @@
-/* scripts/tests/unit-tests.js — built-in unit-test runner (M13, T13.9).
+/* scripts/tests/unit-tests.js — built-in unit-test runner.
    Run from the browser console — one command, zero external tools:
 
        APM.test.run()          -> every suite, 100% = all cases pass
@@ -1712,6 +1712,7 @@
                     "strip-html",
                     "remove-comment",
                     "remove-extra-space",
+                    "remove-emoji",
                     "regex-replace",
                     "code-minify",
                     "dedup"
@@ -1723,6 +1724,7 @@
                     "Output length limit",
                     "Regex find & replace",
                     "Remove comments",
+                    "Remove emoji",
                     "Remove extra space",
                     "Strip HTML"
                 ],
@@ -1792,6 +1794,46 @@
     add("code-minify", "csharpVersion: version ignored for c", "x=1;y=2;", "cVer", ["x   =   1 ; // c\ny   =   2 ;", "csharp-11"]);
     add("code-minify", "json output parses to the same value", V.jsonParse, "jsonParse", [V.jsonInput]);
 
+    // ---- json value options (parse->clean->compact, all-off = legacy) ----
+    add("code-minify", "jsonOpts: removeNull only", '{"b":{},"c":[],"d":"","e":1}', "jsonOpts", ['{\n  "a": null,\n  "b": {},\n  "c": [],\n  "d": "",\n  "e": 1\n}', { language: "json", removeComments: true, removeNull: true }]);
+    add("code-minify", "jsonOpts: all 4", '{"e":1}', "jsonOpts", ['{"a": null, "b": {}, "c": [], "d": "", "e": 1}', { language: "json", removeComments: true, removeNull: true, removeEmptyObject: true, removeEmptyArray: true, removeEmptyString: true }]);
+    add("code-minify", "jsonOpts: nested cascade empties the root", "", "jsonOpts", ['{"a":{"b":null},"c":[]}', { language: "json", removeComments: true, removeNull: true, removeEmptyArray: true, removeEmptyObject: true }]);
+    add("code-minify", "jsonOpts: array cascade", "[1]", "jsonOpts", ['[{"x":null},1,""]', { language: "json", removeComments: true, removeNull: true, removeEmptyString: true, removeEmptyObject: true }]);
+    add("code-minify", "jsonOpts: root null removed", "", "jsonOpts", ["null", { language: "json", removeComments: true, removeNull: true }]);
+    add("code-minify", "jsonOpts: parse failure keeps collapsed", "{bad json", "jsonOpts", ["{bad json", { language: "json", removeComments: true, removeNull: true }]);
+    add("code-minify", "jsonOpts: 0 and false never drop", '{"n":0,"b":false}', "jsonOpts", ['{"n":0,"b":false,"z":null}', { language: "json", removeComments: true, removeNull: true, removeEmptyObject: true, removeEmptyArray: true, removeEmptyString: true }]);
+    add("code-minify", "jsonOpts: all OFF = legacy collapse", '{"a":null,"b":{},"c":[],"d":"","e":1}', "jsonOpts", ['{"a": null, "b": {}, "c": [], "d": "", "e": 1}', { language: "json", removeComments: true, removeNull: false, removeEmptyObject: false, removeEmptyArray: false, removeEmptyString: false }]);
+    add("code-minify", "jsonOpts: descriptor 4 json-only OFF checkboxes", "ok", "jsonOptsDesc");
+
+    // ---- markdown plain-text option (OFF = legacy byte-exact) ----
+    add("code-minify", "mdPlain: heading + blockquote + lists", "Title\nquote\nitem\nfirst", "mdPlain", ["# Title\n> quote\n- item\n1. first"]);
+    add("code-minify", "mdPlain: emphasis + code + strike", "bold and it here\ncode here\ngone stripped", "mdPlain", ["**bold** and *it* here\n`code` here\n~~gone~~ stripped"]);
+    add("code-minify", "mdPlain: link + image", "link and alt", "mdPlain", ["[link](http://x/y) and ![alt](http://z)"]);
+    add("code-minify", "mdPlain: table (separator dropped)", "a b\n1 2", "mdPlain", ["| a | b |\n| --- | :---: |\n| 1 | 2 |"]);
+    add("code-minify", "mdPlain: fence content kept", "let x = **not** md;", "mdPlain", ["```js\nlet x = **not** md;\n```"]);
+    add("code-minify", "mdPlain: in-word underscores kept", "a_b_c stays", "mdPlain", ["a_b_c stays"]);
+    add("code-minify", "mdPlain: comment + raw tag + hr", "visible\n\nwrapped", "mdPlain", ["<!-- hidden -->visible\n<hr>\nwrapped"]);
+    add("code-minify", "mdPlain: plain prose identity", "Just plain text.", "mdPlain", ["Just plain text."]);
+    add("code-minify", "mdPlain: OFF = legacy byte-exact", true, "mdPlainOff", ["# Title\n**bold** text\n[link](http://x)"]);
+    add("code-minify", "mdPlain: descriptor markdown-only OFF checkbox", "ok", "mdPlainDesc");
+
+    // ---- emoji (sequence -> one space, zero-emoji identity) ----
+    add("emoji", "emoji: lone emoji -> one space", "a   b", "emoji", ["a \uD83D\uDE00 b"]);
+    add("emoji", "emoji: trailing check -> space", "100% done  ", "emoji", ["100% done \u2705"]);
+    add("emoji", "emoji: flag pair = one sequence", "  flag", "emoji", ["\uD83C\uDDE6\uD83C\uDDE8 flag"]);
+    add("emoji", "emoji: ZWJ family = one sequence", "  family", "emoji", ["\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67 family"]);
+    add("emoji", "emoji: skin tone attached", "  up", "emoji", ["\uD83D\uDC4D\uD83C\uDFFD up"]);
+    add("emoji", "emoji: VS16 attached", "  warn", "emoji", ["\u26A0\uFE0F warn"]);
+    add("emoji", "emoji: zero emoji identity", "hello world 123", "emoji", ["hello world 123"]);
+    add("emoji", "emoji: quoted string (string-agnostic)", "\" \"", "emoji", ['"\uD83D\uDE03"']);
+    add("emoji", "emoji: three in a row -> three spaces", "   ", "emoji", ["\uD83D\uDE00\uD83D\uDE00\uD83D\uDE00"]);
+    add("emoji", "emoji: non-emoji symbols kept", "a \u2194 b \u2460 100%", "emoji", ["a \u2194 b \u2460 100%"]);
+    add("emoji", "emoji: whitespace-only -> empty", "", "emoji", ["   "]);
+    add("emoji", "emoji: descriptor name", "Remove emoji", "emojiName");
+
+    // ---- pane status (readouts left-anchored) ----
+    add("paneStatus", "posLeft: readouts left-anchored before .pane-controls", true, "posLeft");
+
     // ---- dedup (t154: lines + blocks modes, byte-exact) ----
     V.dedup.forEach(function (c) { add("dedup", c[0], c[3], "dedup", [c[1], c[2]]); });
     add("dedup", "descriptor: name", "Duplicate line dedup", "dedupName");
@@ -1860,7 +1902,7 @@
     add("limit", "descriptor: preset labels (unit-neutral)", V.desc["limit presets"], "limitPresets");
     add("limit", "descriptor: units + labels", { values: V.desc["limit units"], labels: V.desc["limit unit labels"] }, "limitUnits");
     add("code-minify", "descriptor: 21 language options (exact order + labels)", { order: V.desc["cm lang order"], labels: V.desc["cm lang labels"] }, "cmLangs");
-    // M16 (T16.2): the Version select's `choices` is a FUNCTION of the
+    // The Version select's `choices` is a FUNCTION of the
     // card options — C# → the 9 bands, every other language (incl.
     // Auto) → the single "Auto (latest)" option.
     add("code-minify", "descriptor: version choices is a function of the card options", true, "cmVerIsFn");
@@ -1877,7 +1919,7 @@
     });
 
     // ---- registry (ids + meta pass-through, pure) ----
-    add("registry", "registry: 8 filters registered", V.desc["filter ids"], "filterIds");
+    add("registry", "registry: 9 filters registered", V.desc["filter ids"], "filterIds");
     add("registry", "registry: metas pass-through (regex card only)", { text: "a# b#", metas: [{ index: 0, meta: "2 replacements" }] }, "registryMetas", ["a1 b22", [{ id: "regex-replace", options: { pattern: "\\d+", replacement: "#" } }]]);
     add("registry", "registry: mixed recipe (minify + regex) metas at index 1", { text: "a B", metas: [{ index: 1, meta: "1 replacement" }] }, "registryMetas", ["a   b", [{ id: "minify", options: {} }, { id: "regex-replace", options: { pattern: "b", replacement: "B" } }]]);
 
@@ -1909,9 +1951,9 @@
     add("theme", "theme: apm.theme key holds a valid name", true, "themeKey");
 
     // ---- palette (DOM order = ASC names) ----
-    add("palette", "palette: DOM order = 8 names ASC", V.desc["filter names asc"], "paletteOrder");
-    add("palette", "palette: count badge = (8)", "(8)", "paletteCount");
-    // M16 (T16.1): search = name + desc + keywords — the short descs stay
+    add("palette", "palette: DOM order = 9 names ASC", V.desc["filter names asc"], "paletteOrder");
+    add("palette", "palette: count badge = (9)", "(9)", "paletteCount");
+    // search = name + desc + keywords — the short descs stay
     // searchable through the search-only `keywords` field.
     add("palette", "palette: search 'ruby' → Code minify + Remove comments", ["Code minify", "Remove comments"], "paletteSearch", ["ruby"]);
     add("palette", "palette: search 'c#' → Code minify + Remove comments", ["Code minify", "Remove comments"], "paletteSearch", ["c#"]);
@@ -1932,7 +1974,7 @@
     add("focusTrap", "focusTrap: import-row Close → focus returns to the trigger", true, "ftImportClose");
     add("focusTrap", "focusTrap: trap detached after close (Tab no longer trapped)", true, "ftNoLeak");
 
-    // ---- paneStatus (T15.5: line/caret/selection display, pins computed
+    // ---- paneStatus (line/caret/selection display, pins computed
     //      from the io.js contract math — never eyeballed) ----
     add("paneStatus", "paneStatus: empty panes, none focused — base only", { p: "0 ln", i: "0 ln", o: "0 ln" }, "psBase");
     add("paneStatus", "paneStatus: input focused, caret at start", { p: "0 ln", i: "1 ln · Ln 1, Col 1", o: "1 ln" }, "psCaretStart");
@@ -1943,7 +1985,7 @@
     add("paneStatus", "paneStatus: blur reverts to base only", { p: "0 ln", i: "2 ln", o: "2 ln" }, "psBlur");
     add("paneStatus", "paneStatus: zero pipeline impact (pinned doc)", "x=1", "psNoImpact");
 
-    // ---- splits (T15.6: resizable columns + peek width; clamp pins
+    // ---- splits (resizable columns + peek width; clamp pins
     //      computed from the contract floors at the 1280px context
     //      width — t156_pins, never eyeballed) ----
     add("splits", "splits: defaults (absent key) = 24%/26%", { f: "24%", r: "26%" }, "spDefaults");
@@ -1955,7 +1997,7 @@
     add("splits", "splits: hard save shape unchanged after a resize", true, "spProfileExempt");
     add("splits", "splits: soft save shape unchanged after a resize", true, "spSoftExempt");
 
-    // ---- panes (T16.3: vertically resizable I/O panes; apm.ui.panes,
+    // ---- panes (vertically resizable I/O panes; apm.ui.panes,
     //      per-browser, profile-exempt) ----
     add("panes", "panes: defaults = {p: 18%, i: 41%}", { p: "18%", i: "41%" }, "pnDefaults");
     add("panes", "panes: setPanes persists the {p,i} % shape", { p: "30%", i: "40%" }, "pnShape");
@@ -2109,7 +2151,7 @@
         return names;
     }
 
-    // ---- T16.3 drivers (vertically resizable I/O panes) ----
+    // ---- panes drivers (vertically resizable I/O panes) ----
     function pnDefaults() {
         APM.splits.clearPanes();
         return APM.splits.readPanes();
@@ -2172,7 +2214,7 @@
             JSON.stringify(Object.keys(snap).sort()) === JSON.stringify(["name", "prefix", "recipe", "savedAt", "version"]));
     }
 
-    // ---- T16.2 drivers (dynamic version dropdown) ----
+    // ---- version dropdown drivers (dynamic choices) ----
     function cmOptValues(sel) {
         return Array.prototype.map.call(sel.querySelectorAll("option"), function (o) { return o.value; });
     }
@@ -2235,7 +2277,7 @@
         return ftActiveId() === toId;
     }
 
-    // ---- paneStatus drivers (T15.5: display-only pane status) ----
+    // ---- paneStatus drivers (display-only pane status) ----
     function psSetup(pv, iv) {
         var $ = APM.dom.$;
         APM.state.prefix = pv; $("prefix").value = pv;
@@ -2261,7 +2303,7 @@
         return { p: $("prefix-pos").textContent, i: $("input-pos").textContent, o: $("output-pos").textContent };
     }
 
-    // ---- splits drivers (T15.6: column widths + peek width) ----
+    // ---- splits drivers (column widths + peek width) ----
     function spDefaults() {
         APM.splits.clearPersisted();
         return APM.splits.read();
@@ -2335,6 +2377,36 @@
             case "jsVer": return get("code-minify").run(a[0], { language: "javascript", version: a[1] });
             case "cVer": return get("code-minify").run(a[0], { language: "c", version: a[1] });
             case "jsonParse": return JSON.parse(get("code-minify").run(a[0], { language: "json" }));
+            case "jsonOpts": return get("code-minify").run(a[0], a[1]);
+            case "jsonOptsDesc": {
+                var cs = get("code-minify").checkboxes;
+                var ok = ["removeNull", "removeEmptyObject", "removeEmptyArray", "removeEmptyString"].every(function (k) {
+                    var c = null; for (var j = 0; j < cs.length; j++) if (cs[j].key === k) c = cs[j];
+                    return c && c.def === false && c.visible({ language: "json" }) === true && c.visible({ language: "csharp" }) === false;
+                }) && get("code-minify").defaultOptions().removeNull === false;
+                return ok ? "ok" : "bad";
+            }
+            case "mdPlain": return get("code-minify").run(a[0], { language: "markdown", removeComments: true, removeStyle: true });
+            case "mdPlainOff": return get("code-minify").run(a[0], { language: "markdown", removeComments: true, removeStyle: false }) === get("code-minify").run(a[0], { language: "markdown", removeComments: true });
+            case "mdPlainDesc": {
+                var c2 = null, cbs = get("code-minify").checkboxes;
+                for (var m = 0; m < cbs.length; m++) if (cbs[m].key === "removeStyle") c2 = cbs[m];
+                return c2 && c2.def === false && c2.visible({ language: "markdown" }) === true && c2.visible({ language: "json" }) === false ? "ok" : "bad";
+            }
+            case "emoji": return get("remove-emoji").run(a[0]);
+            case "emojiName": return get("remove-emoji").name;
+            case "posLeft": {
+                var okAll = true;
+                ["prefix", "input", "output"].forEach(function (p) {
+                    var pos = APM.dom.$(p + "-pos");
+                    var title = pos.parentNode;
+                    var controls = title.querySelector(".pane-controls");
+                    var ci = Array.prototype.indexOf.call(title.childNodes, pos);
+                    var ki = Array.prototype.indexOf.call(title.childNodes, controls);
+                    okAll = okAll && title.classList.contains("pane-title") && !controls.contains(pos) && ci < ki;
+                });
+                return okAll;
+            }
             case "dedup": return get("dedup").run(a[0], a[1]);
             case "dedupName": return get("dedup").name;
             case "dedupStatus": return get("dedup").status;

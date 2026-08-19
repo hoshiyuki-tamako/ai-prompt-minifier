@@ -5,9 +5,8 @@
    from this file's `presets` + `units`, so the option metadata lives
    with the filter, not the UI.
 
-   Contract (M13, round-7 item 6):
-     - unit "chars"  (default): the legacy byte-exact substring cut —
-       behaviour is identical to the M8/M9/M10/M11/M12 contract.
+   Contract:
+     - unit "chars"  (default): the legacy byte-exact substring cut.
      - unit "tokens": cut at the last WHOLE chunk whose cumulative
        estimated cost fits the budget (core/tokenize.js chunk model);
        `truncated` is true only when the output actually changed.
@@ -26,7 +25,7 @@
         { value: 390000, label: "390,000" }
     ];
 
-    // Units offered in the recipe card (M13, round-7 item 6).
+    // Units offered in the recipe card.
     var LIMIT_UNITS = [
         { value: "chars", label: "Characters (exact)" },
         { value: "tokens", label: "Tokens (estimated)" }

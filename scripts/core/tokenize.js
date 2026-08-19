@@ -1,4 +1,4 @@
-/* core/tokenize.js — heuristic token estimator (M13, round-7 item 5/6).
+/* core/tokenize.js — heuristic token estimator.
    Zero dependencies, pure, no DOM, no globals other than window.APM.
    Deterministic and single-pass O(n); safe on `file://`.
 

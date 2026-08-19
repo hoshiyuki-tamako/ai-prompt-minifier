@@ -56,7 +56,7 @@
         card.appendChild(head);
         if (def && def.desc) card.appendChild(el("div", "rec-desc", def.desc));
 
-        // M16 (T16.2): function-choices support. A select descriptor
+        // Function-choices support. A select descriptor
         // may declare `choices` as a FUNCTION of the card's current
         // options (code-minify's Version: C# → the C# band list, every
         // other language incl. Auto → the single "Auto (latest)").
@@ -67,6 +67,7 @@
         // — only C# honours the version value). Static-choices
         // selects (remove-comment, dedup, …) never enter this list.
         var dynamicSelects = [];
+        var dynamicCheckboxes = [];
         function refreshDynamic() {
             dynamicSelects.forEach(function (d) {
                 var choices = d.sel.choices(entry.options);
@@ -83,6 +84,11 @@
                     d.select.appendChild(o);
                 });
             });
+            dynamicCheckboxes.forEach(function (d) {
+                var vis = d.cb.visible(entry.options) === true;
+                d.label.hidden = !vis;
+                d.input.hidden = !vis;
+            });
         }
 
         // Per-filter options: "limit" has a bespoke preset+custom pair;
@@ -92,7 +98,7 @@
             entry.options = entry.options || {};
             var opts = el("div", "rec-options");
 
-            // M13 (round-7 item 6): unit selector, rendered FIRST —
+            // Unit selector, rendered FIRST —
             // "Characters (exact)" is the legacy default; "Tokens
             // (estimated)" truncates via the built-in tokenizer.
             var uLabel = el("label", null, "Unit:");
@@ -153,7 +159,7 @@
 
             card.appendChild(opts);
         }
-        // M11: options descriptors render as INDEPENDENT blocks — a
+        // Options descriptors render as INDEPENDENT blocks — a
         // filter may combine several kinds (code-minify = 2 selects +
         // 1 checkbox). The limit branch above stays bespoke + first.
         if (def && def.selects) {
@@ -201,7 +207,7 @@
             def.inputs.forEach(function (inp) {
                 var label = el("label", null, inp.label);
                 var input = el("input");
-                // M13 (round-7 item 4): number inputs (min/step) for
+                // Number inputs (min/step) for
                 // integer options like remove-extra-space's "Spaces:";
                 // the text path (regex-replace) is untouched.
                 input.type = (inp.type === "number") ? "number" : "text";
@@ -237,7 +243,17 @@
                 input.type = "checkbox";
                 input.id = entry.id + "-" + cb.key + "-" + index;
                 label.htmlFor = input.id;
-                input.checked = entry.options[cb.key] !== false;
+                // A missing key (old saves) renders the descriptor's
+                // `def`; legacy checkboxes default ON, the json /
+                // markdown value options default OFF.
+                input.checked = (entry.options[cb.key] !== undefined) ? (entry.options[cb.key] !== false) : (cb.def !== undefined ? cb.def : true);
+                var isVis = typeof cb.visible === "function";
+                if (isVis) {
+                    var vis = cb.visible(entry.options) === true;
+                    label.hidden = !vis;
+                    input.hidden = !vis;
+                    dynamicCheckboxes.push({ cb: cb, label: label, input: input });
+                }
                 input.addEventListener("change", function () {
                     entry.options[cb.key] = input.checked;
                     refreshDynamic(); // no-op when the card has none

@@ -88,7 +88,7 @@
             </div>
         </section>
 
-        <!-- T15.6: resizable boundary (expanded view only; hidden in compact) -->
+        <!-- Resizable boundary (expanded view only; hidden in compact) -->
         <div class="split-gutter" id="split-filters" role="separator"
             aria-orientation="vertical" tabindex="0"
             aria-label="Resize filters and recipe columns"></div>
@@ -113,11 +113,11 @@
                 </div>
                 <ul id="rec-list" class="list-area" aria-label="Applied filters"></ul>
             </div>
-            <!-- T15.6: hover-peek resize handle (visible on peek only) -->
+            <!-- Hover-peek resize handle (visible on peek only) -->
             <div id="recipe-peek-handle" aria-hidden="true"></div>
         </section>
 
-        <!-- T15.6: resizable boundary (expanded view only; hidden in compact) -->
+        <!-- Resizable boundary (expanded view only; hidden in compact) -->
         <div class="split-gutter" id="split-recipe" role="separator"
             aria-orientation="vertical" tabindex="0"
             aria-label="Resize recipe column and input/output area"></div>
@@ -127,8 +127,8 @@
             <section id="prefix-pane" class="io-pane prefix-pane" aria-label="System prompt prefix">
                 <div class="pane-title">
                     <span class="pane-name">System Prompt / Prefix</span>
+                    <span id="prefix-pos" class="io-info io-pos"></span>
                     <span class="pane-controls">
-                        <span id="prefix-pos" class="io-info"></span>
                         <span id="prefix-count" class="io-info">0 chars</span>
                         <span id="prefix-tok" class="io-info" title="Heuristic token estimate (built-in tokenizer) — not an exact count">≈ 0 tok</span>
                         <button id="clear-prefix" type="button" class="btn-ghost" title="Clear the prefix">Clear</button>
@@ -139,15 +139,15 @@
                         placeholder="Optional — placed above your input in the output..."></textarea>
                 </div>
             </section>
-            <!-- T16.3: resizable boundary (always visible — compact rails don't touch #io) -->
+            <!-- Resizable boundary (always visible — compact rails don't touch #io) -->
             <div class="pane-gutter" id="pane-split-prefix" role="separator"
                 aria-orientation="horizontal" tabindex="0"
                 aria-label="Resize prefix and input panes"></div>
             <section id="input-pane" class="io-pane" aria-label="Input">
                 <div class="pane-title">
                     <span class="pane-name">Input</span>
+                    <span id="input-pos" class="io-info io-pos"></span>
                     <span class="pane-controls">
-                        <span id="input-pos" class="io-info"></span>
                         <span id="input-count" class="io-info">0 chars</span>
                         <span id="input-tok" class="io-info" title="Heuristic token estimate (built-in tokenizer) — not an exact count">≈ 0 tok</span>
                         <button id="clear-input" type="button" class="btn-ghost" title="Clear the input">Clear</button>
@@ -164,8 +164,8 @@
             <section id="output-pane" class="io-pane" aria-label="Output">
                 <div class="pane-title">
                     <span class="pane-name">Output</span>
+                    <span id="output-pos" class="io-info io-pos"></span>
                     <span class="pane-controls">
-                        <span id="output-pos" class="io-info"></span>
                         <span id="output-count" class="io-info">0 chars</span>
                         <span id="output-tok" class="io-info" title="Heuristic token estimate (built-in tokenizer) — not an exact count">≈ 0 tok</span>
                         <span id="truncated-badge" class="badge" hidden>truncated</span>
@@ -214,6 +214,7 @@
     <script src="scripts/filters/strip-html.js"></script>
     <script src="scripts/filters/remove-comment.js"></script>
     <script src="scripts/filters/remove-extra-space.js"></script>
+    <script src="scripts/filters/remove-emoji.js"></script>
     <script src="scripts/filters/regex-replace.js"></script>
     <script src="scripts/filters/code-minify.js"></script>
     <script src="scripts/filters/dedup.js"></script>

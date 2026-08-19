@@ -1,7 +1,5 @@
 /* filters/code-minify.js — language-aware whitespace minify,
-   registered as "code-minify" (palette slot 7, M11; the 19-language
-   set + JSON added in M12; C# + the JSONC comment mode added in
-   M13 — 20 languages in the dropdown).
+   registered as "code-minify" (20 languages + Auto in the dropdown).
 
    Engines (all written for this project):
    - core(): shared single-pass collapse — outside opaque regions a
@@ -25,9 +23,19 @@
      its terminating newline);
    - markdownMinify: fenced code blocks (``` / ~~~) byte-exact
      incl. inner newlines, prose collapses, <!-- --> per toggle;
+   - markdownPlainText: the "Remove all style (keep text only)"
+     option — text extraction: fence content kept as-is (fence
+     lines dropped), headings/blockquotes/list markers/hr/table
+     separators/emphasis/links/inline-code/strikethrough/raw HTML
+     dropped, text kept; in-word underscores/asterisks are NOT
+     markers (space/line-boundary guarded);
    - JSON: standard JSON — collapse only; with Remove comments ON
      it runs as JSONC (line + block comments stripped, "-strings
-     byte-exact).
+     byte-exact). The 4 value options (remove null / empty {} /
+     empty [] / empty "") parse -> clean (children first, so
+     cascades like {"a":{"b":null}} resolve) -> re-stringify;
+     a parse failure keeps the collapsed text (never corrupts);
+     a removed root -> "".
 
    Regex-vs-division (JS/TS): a slash is a REGEX start when the last
    significant char is a word char whose token is a control keyword
@@ -46,10 +54,10 @@
    "version" is read for the contract; C# honours it (C#6+ =
    interpolated strings, C#11+ = raw strings — see csharpMinify),
    every other language ignores it, unknown value -> auto (safe).
-   M16 (round-10 item 2): the Version select's `choices` is a
-   FUNCTION of the card options — C# shows the band list, every
-   other language (incl. Auto) shows the single "Auto (latest)";
-   recipe.js renders + rebuilds such selects on option change.
+   The Version select's `choices` is a FUNCTION of the card options
+   — C# shows the band list, every other language (incl. Auto)
+   shows the single "Auto (latest)"; recipe.js renders + rebuilds
+   such selects on option change.
 
    Written from scratch for this project (CyberChef is layout/style
    reference only). */
@@ -258,7 +266,7 @@
         return c.done();
     }
 
-    // ---------- HTML (T11.3) ----------
+    // ---------- HTML ----------
     // Tags are byte-exact except their whitespace (runs -> one space,
     // dropped adjacent to < or >); attribute values are byte-exact;
     // raw-text elements keep their content byte-exact until the
@@ -368,7 +376,7 @@
         return c.done();
     }
 
-    // ---------- C# (M13, version bands M15) ----------
+    // ---------- C# ----------
     // Opaque spans (byte-exact, never minified inside):
     //   """...""" C#11 raw string — whole span opaque (indentation-
     //             sensitive: minifying would change the literal);
@@ -385,8 +393,8 @@
     //   "..." / '...' regular string / char literal — backslash
     //             escapes, never span a newline (an unclosed one
     //             consumes to end — conservative).
-    // Version bands (M15): auto or an unknown value = latest (both
-    // version-born features ON — byte-identical to the M13 behaviour);
+    // Version bands: auto or an unknown value = latest (both
+    // version-born features ON — the default behaviour);
     // csharp-N gates interpolated (C#6+) and raw (C#11+); older bands
     // fall through to the regular string/char paths (deterministic,
     // never corrupts).
@@ -395,7 +403,7 @@
     // byte-exact when OFF.
     function csharpMinify(text, removeComments, version) {
         var n = text.length;
-        // Version band (M15): 99 = auto/latest (both features ON).
+        // Version band: 99 = auto/latest (both features ON).
         var band = 99;
         var bm = /^csharp-(\d+)$/.exec(String(version || "auto"));
         if (bm) band = parseInt(bm[1], 10);
@@ -495,7 +503,7 @@
         return c.done();
     }
 
-    // ---------- Generic grammar-driven minifier (M12) ----------
+    // ---------- Generic grammar-driven minifier ----------
     // One single-pass scanner serves every grammar-driven language
     // (C, C++, Go, Java, JSON, Kotlin, PHP, PowerShell, Python, Ruby,
     // Rust, SQL, Swift, bash). Per-position decision order mirrors the
@@ -543,7 +551,7 @@
         "swift":      { lineStarts: ["//"],         blockStart: "/*",     blockEnd: "*/",   nested: true,  shebang: false, wordStart: false, lineScoped: false, triple: true,  backtick: false, quotes: ['"', "'"] }
     };
 
-    // ---------- Markdown (M12 T12.4) ----------
+    // ---------- Markdown ----------
     // A fence line (``` or ~~~, >=3 chars, at line start with <=3
     // leading spaces, optional info string) opens an opaque region:
     // the opening line, every content line (incl. their newlines) and
@@ -611,6 +619,68 @@
             }
         }
         return c.done();
+    }
+
+    // Plain-text extraction: drop all markdown/HTML styling, keep the
+    // text. Fence content passes through untouched (fence lines
+    // dropped); outside fences: HTML comments, headings, blockquotes,
+    // list markers, hr, table separators, link URLs, emphasis markers
+    // and raw HTML tags are dropped. In-word underscores/asterisks
+    // (e.g. snake_case) are NOT markers — the single-marker rules
+    // require space/line boundaries on both sides.
+    function markdownPlainText(text) {
+        var out = [];
+        var buf = "";
+        var fenceCh = null, fenceLen = 0;
+        var i = 0, n = text.length;
+        function transform(s) {
+            s = s.replace(/<!--[\s\S]*?-->/g, "");
+            s = s.split("\n").map(function (line) {
+                if (/^\s{0,3}(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) return null; // hr — dropped
+                if (/^\s{0,3}\|/.test(line)) {                                 // table row
+                    var cells = line.split("|").map(function (c) { return c.trim(); });
+                    var sep = cells.every(function (c) { return c === "" || /^:?-{1,}:?$/.test(c); });
+                    if (sep) return null; // separator row — dropped
+                    return cells.filter(function (c) { return c !== ""; }).join(" ");
+                }
+                line = line.replace(/^\s{0,3}#{1,6}\s+/, ""); // heading
+                line = line.replace(/^\s{0,3}(>\s?)+/, "");   // blockquote
+                line = line.replace(/^\s{0,3}(?:[-*+]|\d+[.)])\s+/, ""); // list marker
+                return line;
+            }).filter(function (l) { return l !== null; }).join("\n");
+            s = s.replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1"); // image → alt
+            s = s.replace(/\[([^\]]+)\]\([^)]*\)/g, "$1");  // link → text
+            s = s.replace(/`([^`]+)`/g, "$1");              // inline code
+            s = s.replace(/~~(.+?)~~/g, "$1");              // strikethrough
+            s = s.replace(/\*\*(.+?)\*\*/g, "$1");          // bold
+            s = s.replace(/__(.+?)__/g, "$1");
+            s = s.replace(/(^|\s)\*([^*\s][^*\n]*?)\*(?=[\s.,;:!?]|$)/g, "$1$2"); // italic
+            s = s.replace(/(^|\s)_([^_\s][^_\n]*?)_(?=[\s.,;:!?]|$)/g, "$1$2");  // underscore italic
+            s = s.replace(/<\/?[a-zA-Z][a-zA-Z0-9]*[^>]*>/g, ""); // raw HTML tags
+            return s;
+        }
+        function flush() {
+            if (buf !== "") { out.push(transform(buf)); buf = ""; }
+        }
+        while (i < n) {
+            var nl = text.indexOf("\n", i);
+            var line = (nl === -1) ? text.slice(i) : text.slice(i, nl);
+            if (fenceCh) {
+                var close = line.match(/^\s{0,3}([`~]{3,})\s*$/);
+                if (close && close[1].charAt(0) === fenceCh && close[1].length >= fenceLen) {
+                    fenceCh = null; // drop the closing fence
+                } else {
+                    out.push(line); // fence content kept as-is
+                }
+            } else {
+                var open = line.match(/^\s{0,3}([`~]{3,})\s*(\S.*)?$/);
+                if (open) { fenceCh = open[1].charAt(0); fenceLen = open[1].length; } // drop opening fence
+                else { buf += line + (nl === -1 ? "" : "\n"); }
+            }
+            i = (nl === -1) ? n : nl + 1;
+        }
+        flush();
+        return out.join("\n");
     }
 
     function grammarMinify(text, grammar, removeComments) {
@@ -722,16 +792,16 @@
         return c.done();
     }
 
-    // ---------- Auto (20-language pool, M12/M13) ----------
+    // ---------- Auto (20-language pool) ----------
     // MARKERS: 3–6 distinctive stateless regexes per language
     // (plain, non-global, so .test() is stateless). Most sets are the
-    // proven remove-comment MARKERS (17 languages, battle-tested over
-    // M9–M11); C/C++ are split (C = no std:: / -> / template; C++ =
-    // those); css / html / javascript / typescript reuse the M11 sets;
-    // JSON is designed new (quoted-key shapes + line-initial
-    // container); C# (M13) = the strongest C#-specific phrases
-    // (using System / static void Main / Console.WriteLine / var x =
-    // / namespace X) — case-sensitive, multi-word, never prose words.
+    // proven remove-comment MARKERS (17 languages); C/C++ are split
+    // (C = no std:: / -> / template; C++ = those); css / html /
+    // javascript / typescript reuse the remove-comment sets; JSON is
+    // designed new (quoted-key shapes + line-initial container);
+    // C# = the strongest C#-specific phrases (using System /
+    // static void Main / Console.WriteLine / var x = / namespace X)
+    // — case-sensitive, multi-word, never prose words.
     var MARKERS = {
         "bash": [
             /^#!\s*\/bin\//m,
@@ -1021,6 +1091,40 @@
         return best; // null / bestScore <= 0 = identity
     }
 
+    // JSON value-level clean: drop null / empty {} / empty [] / "" per
+    // the toggles. Children are cleaned FIRST so {"a":{"b":null}} +
+    // removeNull + removeEmptyObject → {}. A removed root → "".
+    function jsonDrop(v, o) {
+        if (v === null) return o.removeNull === true;
+        if (typeof v === "string") return v === "" && o.removeEmptyString === true;
+        if (typeof v === "object") {
+            if (Array.isArray(v)) return v.length === 0 && o.removeEmptyArray === true;
+            return Object.keys(v).length === 0 && o.removeEmptyObject === true;
+        }
+        return false; // numbers / booleans never drop
+    }
+    function jsonClean(v, o) {
+        if (v !== null && typeof v === "object") {
+            var arr = Array.isArray(v);
+            var out = arr ? [] : {};
+            var keys = arr ? null : Object.keys(v);
+            var i, c;
+            if (arr) {
+                for (i = 0; i < v.length; i++) {
+                    c = jsonClean(v[i], o);
+                    if (!jsonDrop(c, o)) out.push(c);
+                }
+            } else {
+                for (i = 0; i < keys.length; i++) {
+                    c = jsonClean(v[keys[i]], o);
+                    if (!jsonDrop(c, o)) out[keys[i]] = c;
+                }
+            }
+            return out;
+        }
+        return v;
+    }
+
     var LANG_RUNNERS = {
         "html": htmlMinify,
         "css": cssMinify,
@@ -1032,14 +1136,25 @@
         "cpp": function (t, rc) { return grammarMinify(t, GRAMMARS.cpp, rc); },
         "go": function (t, rc) { return grammarMinify(t, GRAMMARS.go, rc); },
         "java": function (t, rc) { return grammarMinify(t, GRAMMARS.java, rc); },
-        "json": function (t, rc) {
-            // M13: JSON + Remove comments ON = JSONC (// and /* */
-            // stripped, "-strings byte-exact). OFF = standard JSON:
-            // collapse only (byte-exact legacy path).
-            return grammarMinify(t, (rc && GRAMMARS.json.jsonc) ? GRAMMARS.jsonc : GRAMMARS.json, rc);
+        "json": function (t, rc, v, o) {
+            // Remove comments ON = JSONC (// and /* */ stripped,
+            // "-strings byte-exact); OFF = collapse only. Any value
+            // toggle ON → parse, clean, re-stringify; a parse failure
+            // keeps the collapsed text (never corrupts).
+            var collapsed = grammarMinify(t, (rc && GRAMMARS.json.jsonc) ? GRAMMARS.jsonc : GRAMMARS.json, rc);
+            o = o || {};
+            if (!(o.removeNull || o.removeEmptyObject || o.removeEmptyArray || o.removeEmptyString)) return collapsed;
+            var parsed;
+            try { parsed = JSON.parse(collapsed); } catch (e) { return collapsed; }
+            var cleaned = jsonClean(parsed, o);
+            return jsonDrop(cleaned, o) ? "" : JSON.stringify(cleaned);
         },
         "kotlin": function (t, rc) { return grammarMinify(t, GRAMMARS.kotlin, rc); },
-        "markdown": markdownMinify,
+        "markdown": function (t, rc, v, o) {
+            o = o || {};
+            if (o.removeStyle === true) return markdownPlainText(t);
+            return markdownMinify(t, rc); // OFF = the shipped minify, byte-exact
+        },
         "php": function (t, rc) { return grammarMinify(t, GRAMMARS.php, rc); },
         "powershell": function (t, rc) { return grammarMinify(t, GRAMMARS.powershell, rc); },
         "python": function (t, rc) { return grammarMinify(t, GRAMMARS.python, rc); },
@@ -1066,14 +1181,14 @@
             var version = (typeof opts.version === "string" && opts.version) ? opts.version : "auto";
             var removeComments = opts.removeComments !== false;
             if (language === "auto") {
-                // M13: the Auto pool is all 20 supported languages.
+                // The Auto pool is all 20 supported languages.
                 var guessed = guessLang(text);
                 if (!guessed) return text; // zero markers: identity — never corrupt
                 language = guessed;
             }
             var runner = LANG_RUNNERS[language];
             if (!runner) return text; // unknown language value: identity — safe
-            return runner(text, removeComments, version);
+            return runner(text, removeComments, version, opts); // opts: json value toggles
         },
         selects: [
             {
@@ -1104,8 +1219,8 @@
             },
             {
                 key: "version", label: "Version:",
-                // M16 (T16.2): `choices` is a FUNCTION of the card's
-                // current options — the dropdown is language-aware.
+                // `choices` is a FUNCTION of the card's current
+                // options — the dropdown is language-aware.
                 // C# gets the band list (interpolated strings need
                 // C#6+, raw strings C#11+ — see csharpMinify); every
                 // other language has no versions, so it shows exactly
@@ -1132,10 +1247,15 @@
             }
         ],
         checkboxes: [
-            { key: "removeComments", label: "Remove comments" }
+            { key: "removeComments", label: "Remove comments" },
+            { key: "removeNull", label: "Remove null", def: false, visible: function (o) { return o && o.language === "json"; } },
+            { key: "removeEmptyObject", label: "Remove empty object {}", def: false, visible: function (o) { return o && o.language === "json"; } },
+            { key: "removeEmptyArray", label: "Remove empty array []", def: false, visible: function (o) { return o && o.language === "json"; } },
+            { key: "removeEmptyString", label: "Remove empty string \"\"", def: false, visible: function (o) { return o && o.language === "json"; } },
+            { key: "removeStyle", label: "Remove all style (keep text only)", def: false, visible: function (o) { return o && o.language === "markdown"; } }
         ],
         defaultOptions: function () {
-            return { language: "auto", version: "auto", removeComments: true };
+            return { language: "auto", version: "auto", removeComments: true, removeNull: false, removeEmptyObject: false, removeEmptyArray: false, removeEmptyString: false, removeStyle: false };
         }
     });
 })(window.APM = window.APM || {});

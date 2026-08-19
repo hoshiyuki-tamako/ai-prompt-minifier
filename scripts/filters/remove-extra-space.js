@@ -6,13 +6,13 @@
    ends. Pair with "Minify" if you want the context-aware behaviour
    instead.
 
-   Contract (M13, round-7 item 4):
+   Contract:
      - card option "Spaces:" = integer N (default 1, minimum 0):
          N >= 1 → every \s+ run → exactly N spaces, ends fully trimmed
          N = 0  → every \s+ run → removed entirely (the "giant blob")
      - N is floor-parsed (0.5 → 0); negative or invalid → 1.
      - N = 1 (and missing/invalid N) is byte-exact identical to the
-       M8–M12 contract. */
+       legacy contract. */
 (function (APM) {
     "use strict";
 

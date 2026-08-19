@@ -1,4 +1,4 @@
-/* filters/dedup.js — registered as "dedup" (M15).
+/* filters/dedup.js — registered as "dedup".
    Duplicate line dedup: removes exact duplicate LINES, or exact
    duplicate BLOCKS (maximal runs of consecutive non-blank lines),
    keeping the first occurrence and reporting the removal count on

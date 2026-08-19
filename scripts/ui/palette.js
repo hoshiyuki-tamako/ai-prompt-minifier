@@ -1,11 +1,10 @@
 /* ui/palette.js — column 1: searchable filter palette.
    Add a filter to the recipe by drag, double-click, or keyboard
    (focus the item, then Enter/Space).
-   M13 (round-7 item 3): items render SORTED by filter title name
-   (codepoint ASC, locale-independent); the registry/recipe order is
-   untouched.
-   M16 (round-10 item 1): search matches name + desc + the optional
-   search-only `keywords` field (short descs stay searchable). */
+   Items render SORTED by filter title name (codepoint ASC,
+   locale-independent); the registry/recipe order is untouched.
+   Search matches name + desc + the optional search-only `keywords`
+   field (short descs stay searchable). */
 (function (APM) {
     "use strict";
 
@@ -29,7 +28,7 @@
 
         sortedIds().forEach(function (id) {
             var def = APM.filters.get(id);
-            // M16: haystack = name + desc + keywords. `keywords` is a
+            // haystack = name + desc + keywords. `keywords` is a
             // search-only field (never displayed) that carries the former
             // descriptive detail, so the short user-facing descs stay
             // fully searchable ("ruby", "c#", "json", ...).

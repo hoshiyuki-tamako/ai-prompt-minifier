@@ -14,7 +14,7 @@
    - Floors: filters ≥ 220px, recipe ≥ 250px, io ≥ 320px (the CSS
      min-widths are the ultimate floor; JS keeps the persisted % sane
      across window resizes).
-   - M16 (round-10 item 3): the I/O panes are vertically resizable too —
+   - The I/O panes are vertically resizable too —
      two .pane-gutter separators inside #io (always visible; the compact
      rails don't touch #io). #io carries --pane-p (prefix) / --pane-i
      (input); the output pane absorbs the remainder. Defaults 18%/41%;
@@ -173,7 +173,7 @@
         });
     }
 
-    // ---------- M16 (T16.3): vertically resizable I/O panes ----------
+    // ---------- Vertically resizable I/O panes ----------
     var PANES_KEY = "apm.ui.panes";
     var PANES_DEFAULTS = { p: "18%", i: "41%" };
     var PANE_FLOOR = { p: 60, i: 120, o: 120 }; // px hard floors

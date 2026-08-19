@@ -4,7 +4,7 @@
 (function (APM) {
     "use strict";
 
-    // M13 (round-7 item 1): the prefix is NEVER run through the recipe.
+    // The prefix is NEVER run through the recipe.
     // The recipe runs on the input only; the raw prefix is then
     // prepended to the front, byte-exact:
     //   prefix + input non-empty → output = prefix + "\n" + recipe(input)
@@ -27,7 +27,7 @@
         $("prefix-count").textContent = APM.state.prefix.length.toLocaleString() + " chars";
         $("input-count").textContent = APM.state.input.length.toLocaleString() + " chars";
         $("output-count").textContent = result.text.length.toLocaleString() + " chars";
-        // M13 (round-7 item 5): live token estimates — heuristic (the
+        // Live token estimates — heuristic (the
         // built-in tokenizer, core/tokenize.js); the UI always says "≈".
         if (typeof APM.tokens !== "undefined" && typeof APM.tokens.estimate === "function") {
             $("prefix-tok").textContent = "≈ " + APM.tokens.estimate(APM.state.prefix).toLocaleString() + " tok";
@@ -51,7 +51,7 @@
         });
 
         $("clear-prefix").addEventListener("click", function () {
-            // M13 (round-7 item 2): confirm before clearing.
+            // Confirm before clearing.
             if (!confirm("Clear the prefix?")) return;
             APM.state.prefix = "";
             $("prefix").value = "";
@@ -65,7 +65,7 @@
         });
 
         $("clear-input").addEventListener("click", function () {
-            // M13 (round-7 item 2): confirm before clearing.
+            // Confirm before clearing.
             if (!confirm("Clear the input?")) return;
             APM.state.input = "";
             $("input").value = "";
@@ -99,7 +99,7 @@
         refreshPos(); // initial base text ("0 ln" on a fresh boot)
     }
 
-    // M15 (T15.5): pane status — display-only line/caret/selection info
+    // Pane status — display-only line/caret/selection info
     // in each pane's title bar. Base = "N ln" (total lines; an empty
     // pane reads 0). The FOCUSED pane appends the caret "Ln X, Col Y",
     // or a selection range "Ln A, Col A – Ln B, Col B · K ch" when a
