@@ -1,3 +1,3 @@
 # AI Agent persistent state and execution logs
-.ai/agent-state
-.ai/knowledge
+.ai/agent-state/
+.ai/knowledge/
